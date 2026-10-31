@@ -1,0 +1,22 @@
+{
+    "name": "Garapon.Editor",
+    "rootNamespace": "Garapon.Editor",
+    "references": [
+        "Garapon.Core",
+        "Garapon.Game",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,203 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a961c805f8c5242eb831f64200bcf746, type: 3}
+  m_Name: GameData
+  m_EditorClassIdentifier: Garapon.Game::Garapon.Game.GameDataAsset
+  Data:
+    PrizeTiers:
+    - Color: 0
+      PartsPerMillion: 1
+      ItemId: 
+      ItemAmount: 1
+    - Color: 1
+      PartsPerMillion: 5000
+      ItemId: rare_parts
+      ItemAmount: 1
+    - Color: 2
+      PartsPerMillion: 30000
+      ItemId: tool_parts
+      ItemAmount: 1
+    - Color: 3
+      PartsPerMillion: 80000
+      ItemId: voucher
+      ItemAmount: 1
+    - Color: 4
+      PartsPerMillion: 200000
+      ItemId: detergent
+      ItemAmount: 1
+    - Color: 5
+      PartsPerMillion: 684999
+      ItemId: tissue
+      ItemAmount: 1
+    Items:
+    - Id: rare_parts
+      DisplayName: "\u5E0C\u5C11\u306A\u90E8\u54C1"
+      SellPrice: 0
+      VoucherValue: 0
+    - Id: tool_parts
+      DisplayName: "\u9053\u5177\u306E\u90E8\u54C1"
+      SellPrice: 0
+      VoucherValue: 0
+    - Id: voucher
+      DisplayName: "\u5546\u54C1\u5238"
+      SellPrice: 0
+      VoucherValue: 100
+    - Id: detergent
+      DisplayName: "\u6D17\u5264"
+      SellPrice: 30
+      VoucherValue: 0
+    - Id: tissue
+      DisplayName: "\u30C6\u30A3\u30C3\u30B7\u30E5"
+      SellPrice: 5
+      VoucherValue: 0
+    Trash:
+    - Id: can
+      DisplayName: "\u7A7A\u304D\u7F36"
+      Value: 10
+    - Id: bottle
+      DisplayName: "\u30DA\u30C3\u30C8\u30DC\u30C8\u30EB"
+      Value: 15
+    - Id: paper
+      DisplayName: "\u7D19\u304F\u305A"
+      Value: 5
+    Upgrades:
+    - Id: shoes
+      DisplayName: "\u904B\u52D5\u9774"
+      Stat: 0
+      ValuePerLevel: 0.25
+      MaxLevel: 10
+      BaseCost: 300
+      CostGrowth: 1.5
+      ItemCostId: 
+      ItemCostAmount: 0
+    - Id: tongs
+      DisplayName: "\u9577\u3044\u30C8\u30F3\u30B0"
+      Stat: 1
+      ValuePerLevel: 0.5
+      MaxLevel: 10
+      BaseCost: 300
+      CostGrowth: 1.5
+      ItemCostId: tool_parts
+      ItemCostAmount: 1
+    - Id: bag
+      DisplayName: "\u5206\u5225\u888B"
+      Stat: 2
+      ValuePerLevel: 0.5
+      MaxLevel: 40
+      BaseCost: 500
+      CostGrowth: 1.3
+      ItemCostId: 
+      ItemCostAmount: 0
+    - Id: robot
+      DisplayName: "\u3054\u307F\u62FE\u3044\u30ED\u30DC"
+      Stat: 3
+      ValuePerLevel: 1
+      MaxLevel: 60
+      BaseCost: 2000
+      CostGrowth: 1.25
+      ItemCostId: rare_parts
+      ItemCostAmount: 1
+    - Id: card
+      DisplayName: "\u30DD\u30A4\u30F3\u30C8\u30AB\u30FC\u30C9"
+      Stat: 4
+      ValuePerLevel: 0.1
+      MaxLevel: 30
+      BaseCost: 1000
+      CostGrowth: 1.4
+      ItemCostId: 
+      ItemCostAmount: 0
+    - Id: delivery
+      DisplayName: "\u30CD\u30C3\u30C8\u30B9\u30FC\u30D1\u30FC"
+      Stat: 5
+      ValuePerLevel: 1
+      MaxLevel: 1
+      BaseCost: 20000
+      CostGrowth: 1.5
+      ItemCostId: rare_parts
+      ItemCostAmount: 5
+    - Id: grease
+      DisplayName: "\u6F64\u6ED1\u6CB9"
+      Stat: 6
+      ValuePerLevel: 0.5
+      MaxLevel: 80
+      BaseCost: 800
+      CostGrowth: 1.2
+      ItemCostId: 
+      ItemCostAmount: 0
+    - Id: hopper
+      DisplayName: "\u5927\u578B\u30DB\u30C3\u30D1\u30FC"
+      Stat: 7
+      ValuePerLevel: 1
+      MaxLevel: 9
+      BaseCost: 3000
+      CostGrowth: 2
+      ItemCostId: tool_parts
+      ItemCostAmount: 3
+    - Id: motor
+      DisplayName: "\u81EA\u52D5\u30E2\u30FC\u30BF\u30FC"
+      Stat: 8
+      ValuePerLevel: 1
+      MaxLevel: 1
+      BaseCost: 10000
+      CostGrowth: 1.5
+      ItemCostId: rare_parts
+      ItemCostAmount: 3
+    Products:
+    - Id: bread
+      DisplayName: "\u98DF\u30D1\u30F3"
+      Price: 150
+      UpgradeId: 
+    - Id: milk
+      DisplayName: "\u725B\u4E73"
+      Price: 200
+      UpgradeId: 
+    - Id: eggs
+      DisplayName: "\u5375"
+      Price: 250
+      UpgradeId: 
+    - Id: upgrade_shoes
+      DisplayName: "\u904B\u52D5\u9774"
+      Price: 0
+      UpgradeId: shoes
+    - Id: upgrade_tongs
+      DisplayName: "\u9577\u3044\u30C8\u30F3\u30B0"
+      Price: 0
+      UpgradeId: tongs
+    - Id: upgrade_bag
+      DisplayName: "\u5206\u5225\u888B"
+      Price: 0
+      UpgradeId: bag
+    - Id: upgrade_robot
+      DisplayName: "\u3054\u307F\u62FE\u3044\u30ED\u30DC"
+      Price: 0
+      UpgradeId: robot
+    - Id: upgrade_card
+      DisplayName: "\u30DD\u30A4\u30F3\u30C8\u30AB\u30FC\u30C9"
+      Price: 0
+      UpgradeId: card
+    - Id: upgrade_delivery
+      DisplayName: "\u30CD\u30C3\u30C8\u30B9\u30FC\u30D1\u30FC"
+      Price: 0
+      UpgradeId: delivery
+    - Id: upgrade_grease
+      DisplayName: "\u6F64\u6ED1\u6CB9"
+      Price: 0
+      UpgradeId: grease
+    - Id: upgrade_hopper
+      DisplayName: "\u5927\u578B\u30DB\u30C3\u30D1\u30FC"
+      Price: 0
+      UpgradeId: hopper
+    - Id: upgrade_motor
+      DisplayName: "\u81EA\u52D5\u30E2\u30FC\u30BF\u30FC"
+      Price: 0
+      UpgradeId: motor
+    MoneyPerTicket: 100
