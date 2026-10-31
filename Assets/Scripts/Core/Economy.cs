@@ -39,6 +39,11 @@ namespace Garapon.Core
 
         public long SellTrash()
         {
+            if (state.TrashValue == 0)
+            {
+                return 0;
+            }
+
             var multiplier = 1 + upgrades.GetValue(UpgradeStat.TrashValue);
             var earned = (long)Math.Round(state.TrashValue * multiplier);
             state.Money += earned;
@@ -57,6 +62,21 @@ namespace Garapon.Core
 
             state.Money += earned;
             state.AddItem(itemId, -state.GetItem(itemId));
+            return earned;
+        }
+
+        // Sells the collected trash and every daily good that has a resale price.
+        public long SellEverything()
+        {
+            var earned = SellTrash();
+            foreach (var item in data.Items)
+            {
+                if (item.SellPrice > 0)
+                {
+                    earned += SellItems(item.Id);
+                }
+            }
+
             return earned;
         }
 

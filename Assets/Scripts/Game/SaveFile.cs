@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using Garapon.Core;
 using UnityEngine;
@@ -18,11 +19,29 @@ namespace Garapon.Game
                 return new GameState();
             }
 
-            return JsonUtility.FromJson<GameState>(File.ReadAllText(SavePath));
+            try
+            {
+                var state = JsonUtility.FromJson<GameState>(File.ReadAllText(SavePath));
+                if (state != null)
+                {
+                    return state;
+                }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
+            }
+
+            // Keep the unreadable file so it can be inspected, and start over rather than crash on launch.
+            var backupPath = SavePath + ".broken";
+            File.Copy(SavePath, backupPath, true);
+            Debug.LogWarning($"Save file could not be read and was copied to {backupPath}.");
+            return new GameState();
         }
 
         public static void Save(GameState state)
         {
+            state.LastSavedUnixSeconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             var temporaryPath = SavePath + ".tmp";
             File.WriteAllText(temporaryPath, JsonUtility.ToJson(state));
             File.Copy(temporaryPath, SavePath, true);

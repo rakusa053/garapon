@@ -27,6 +27,19 @@ namespace Garapon.Core
             return value;
         }
 
+        // Balls drawn per crank. Each hopper level doubles it, which is what lets the
+        // late game reach a million draws.
+        public long DrawsPerCrank => 1L << (int)Math.Min(GetValue(UpgradeStat.DrawBatch), 40);
+
+        public double CrankSpeedMultiplier => 1 + GetValue(UpgradeStat.CrankSpeed);
+
+        // Pieces of trash the robot collects per second.
+        public double AutoCollectPerSecond => GetValue(UpgradeStat.AutoCollect);
+
+        public bool HasAutoCrank => GetValue(UpgradeStat.AutoCrank) >= 1;
+
+        public bool HasDelivery => GetValue(UpgradeStat.Delivery) >= 1;
+
         public bool IsMaxed(UpgradeDef upgrade) => state.GetUpgradeLevel(upgrade.Id) >= upgrade.MaxLevel;
 
         public long GetCost(UpgradeDef upgrade)

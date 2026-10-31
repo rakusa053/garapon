@@ -16,3 +16,5 @@ jobs:
           dotnet-version: "8.0.x"
       - name: Run tests
         run: dotnet test CoreTests/Garapon.CoreTests.csproj --logger "console;verbosity=normal"
+      - name: Build balance simulator
+        run: dotnet build Simulation/Garapon.Simulation.csproj

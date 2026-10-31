@@ -23,6 +23,7 @@ namespace Garapon.Core
         public long TotalDraws;
         public double PlaySeconds;
         public bool Cleared;
+        public long LastSavedUnixSeconds;
         public List<CountEntry> Items = new List<CountEntry>();
         public List<CountEntry> UpgradeLevels = new List<CountEntry>();
         public List<CountEntry> DrawCounts = new List<CountEntry>();

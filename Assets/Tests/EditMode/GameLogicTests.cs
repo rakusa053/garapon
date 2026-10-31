@@ -176,9 +176,9 @@ namespace Garapon.Tests
             state.Money = 1000;
             var product = data.FindProduct("upgrade_shoes");
 
-            Assert.AreEqual(300, economy.GetPrice(product));
+            Assert.AreEqual(200, economy.GetPrice(product));
             Assert.IsTrue(economy.Checkout(new[] { product.Id }).Success);
-            Assert.AreEqual(450, economy.GetPrice(product));
+            Assert.AreEqual(300, economy.GetPrice(product));
             Assert.AreEqual(0.25, upgrades.GetValue(UpgradeStat.MoveSpeed), 1e-9);
         }
 
@@ -190,9 +190,9 @@ namespace Garapon.Tests
             Assert.IsFalse(economy.Checkout(new[] { "upgrade_motor" }).Success);
             Assert.AreEqual(100000, state.Money);
 
-            state.AddItem("rare_parts", 3);
+            state.AddItem("tool_parts", 5);
             Assert.IsTrue(economy.Checkout(new[] { "upgrade_motor" }).Success);
-            Assert.AreEqual(0, state.GetItem("rare_parts"));
+            Assert.AreEqual(0, state.GetItem("tool_parts"));
         }
 
         [Test]
@@ -220,9 +220,10 @@ namespace Garapon.Tests
         {
             state.AddItem("rare_parts", 3);
 
-            Assert.IsTrue(economy.CanAddToCart(new string[0], "upgrade_motor"));
-            Assert.IsFalse(economy.CanAddToCart(new[] { "upgrade_robot" }, "upgrade_motor"));
-            Assert.IsFalse(economy.CanAddToCart(new[] { "upgrade_motor" }, "upgrade_motor"));
+            // The robot needs 1 rare part and the delivery service needs 3.
+            Assert.IsTrue(economy.CanAddToCart(new string[0], "upgrade_delivery"));
+            Assert.IsFalse(economy.CanAddToCart(new[] { "upgrade_robot" }, "upgrade_delivery"));
+            Assert.IsFalse(economy.CanAddToCart(new[] { "upgrade_delivery" }, "upgrade_delivery"));
             Assert.IsTrue(economy.CanAddToCart(new[] { "upgrade_robot" }, "bread"));
         }
 

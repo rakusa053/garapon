@@ -44,3 +44,8 @@ crashlytics-build.properties
 /CoreTests/bin/
 /CoreTests/obj/
 /CoreTests/TestResults/
+
+# Balance simulator
+!/Simulation/*.csproj
+/Simulation/bin/
+/Simulation/obj/

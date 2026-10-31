@@ -12,7 +12,18 @@ namespace Garapon.Game
         ProductDef Product => GameSession.Instance.Data.FindProduct(productId);
         UpgradeDef Upgrade => string.IsNullOrEmpty(Product.UpgradeId) ? null : GameSession.Instance.Data.FindUpgrade(Product.UpgradeId);
 
-        public override string Prompt => $"{Product.DisplayName} {GameSession.Instance.Economy.GetPrice(Product):N0}円 をカゴへ";
+        public override string Prompt
+        {
+            get
+            {
+                var price = GameSession.Instance.Economy.GetPrice(Product);
+                var upgrade = Upgrade;
+                var detail = upgrade != null
+                    ? $"({UpgradeText.Effect(upgrade)})"
+                    : $"(抽選券 約{NumberFormat.Japanese(price / GameSession.Instance.Data.MoneyPerTicket)}枚分)";
+                return $"{Product.DisplayName} {NumberFormat.Yen(price)}{detail} をカゴへ";
+            }
+        }
 
         void Update()
         {
@@ -20,7 +31,7 @@ namespace Garapon.Game
             var upgrade = Upgrade;
             label.text = upgrade != null && session.Upgrades.IsMaxed(upgrade)
                 ? $"{Product.DisplayName}\n売り切れ"
-                : $"{Product.DisplayName}\n{session.Economy.GetPrice(Product):N0}円";
+                : $"{Product.DisplayName}\n{NumberFormat.Yen(session.Economy.GetPrice(Product))}";
         }
 
         public override void Interact()

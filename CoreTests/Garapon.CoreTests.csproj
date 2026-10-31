@@ -18,6 +18,7 @@
   <ItemGroup>
     <Compile Include="../Assets/Scripts/Core/**/*.cs" Link="Core/%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="../Assets/Tests/EditMode/**/*.cs" Link="Tests/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="*.cs" />
   </ItemGroup>
 
   <ItemGroup>

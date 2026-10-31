@@ -41,9 +41,22 @@ namespace Garapon.Game
 
         public event Action<PrizeTierDef> PrizeAwarded;
 
-        public override string Prompt => IsBusy
-            ? "ガラポン回転中"
-            : $"ガラポンを回す(抽選券 {GameSession.Instance.State.Tickets:N0}枚)";
+        public override string Prompt
+        {
+            get
+            {
+                var session = GameSession.Instance;
+                var tickets = $"抽選券 {NumberFormat.Japanese(session.State.Tickets)}枚";
+                var batch = session.Upgrades.DrawsPerCrank;
+                var perCrank = batch > 1 ? $"、1回転で{NumberFormat.Japanese(batch)}回抽選" : string.Empty;
+                if (session.Upgrades.HasAutoCrank)
+                {
+                    return $"自動モーターで回転中({tickets}{perCrank})";
+                }
+
+                return IsBusy ? "ガラポン回転中" : $"ガラポンを回す({tickets}{perCrank})";
+            }
+        }
 
         void Start()
         {
@@ -55,7 +68,16 @@ namespace Garapon.Game
 
         void FixedUpdate()
         {
-            speed = Mathf.MoveTowards(speed, drawing ? SpinSpeed : 0f, SpinAcceleration * Time.fixedDeltaTime);
+            var session = GameSession.Instance;
+            if (!drawing && session.Upgrades.HasAutoCrank && session.Lottery.CanDraw)
+            {
+                StartDraw();
+            }
+
+            // Grease speeds the drum up; the acceleration scales too so a draw starts just as quickly.
+            var multiplier = (float)session.Upgrades.CrankSpeedMultiplier;
+            var targetSpeed = drawing ? SpinSpeed * multiplier : 0f;
+            speed = Mathf.MoveTowards(speed, targetSpeed, SpinAcceleration * multiplier * Time.fixedDeltaTime);
             angle = Mathf.Repeat(angle + speed * Time.fixedDeltaTime, 360f);
             TotalSpinDegrees += speed * Time.fixedDeltaTime;
             drum.MoveRotation(Quaternion.Euler(0f, 0f, angle));
@@ -101,6 +123,11 @@ namespace Garapon.Game
                 return;
             }
 
+            StartDraw();
+        }
+
+        void StartDraw()
+        {
             drawing = true;
             drawElapsed = 0f;
         }
@@ -108,20 +135,23 @@ namespace Garapon.Game
         public void OnBallExited(GaraponBall ball)
         {
             var session = GameSession.Instance;
-            var tier = drawing ? session.Lottery.Draw() : null;
-            if (tier == null)
+            var drawsBefore = session.State.TotalDraws;
+            var result = drawing ? session.Lottery.DrawBatch(session.Upgrades.DrawsPerCrank) : null;
+            if (result == null)
             {
+                drawing = false;
                 BallsDiscarded++;
                 ResetBall(ball);
                 return;
             }
 
+            // One physical ball comes out per crank and shows the rarest prize of the batch.
             drawing = false;
             BallsAwarded++;
-            colors.Apply(ball.BallRenderer, PrizeColors.ToColor(tier.Color));
+            colors.Apply(ball.BallRenderer, PrizeColors.ToColor(result.Best.Color));
             StartCoroutine(RecycleAfterDelay(ball));
-            session.HandlePrize(tier);
-            PrizeAwarded?.Invoke(tier);
+            session.HandlePrize(result, drawsBefore);
+            PrizeAwarded?.Invoke(result.Best);
         }
 
         // A safety net so a draw cannot hang if no ball happens to roll through the opening.

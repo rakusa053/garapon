@@ -75,7 +75,7 @@ MonoBehaviour:
       Stat: 0
       ValuePerLevel: 0.25
       MaxLevel: 10
-      BaseCost: 300
+      BaseCost: 200
       CostGrowth: 1.5
       ItemCostId: 
       ItemCostAmount: 0
@@ -100,7 +100,7 @@ MonoBehaviour:
     - Id: robot
       DisplayName: "\u3054\u307F\u62FE\u3044\u30ED\u30DC"
       Stat: 3
-      ValuePerLevel: 1
+      ValuePerLevel: 2
       MaxLevel: 60
       BaseCost: 2000
       CostGrowth: 1.25
@@ -112,34 +112,34 @@ MonoBehaviour:
       ValuePerLevel: 0.1
       MaxLevel: 30
       BaseCost: 1000
-      CostGrowth: 1.4
+      CostGrowth: 1.3
       ItemCostId: 
       ItemCostAmount: 0
     - Id: delivery
-      DisplayName: "\u30CD\u30C3\u30C8\u30B9\u30FC\u30D1\u30FC"
+      DisplayName: "\u51FA\u5F35\u8CB7\u53D6"
       Stat: 5
       ValuePerLevel: 1
       MaxLevel: 1
       BaseCost: 20000
       CostGrowth: 1.5
       ItemCostId: rare_parts
-      ItemCostAmount: 5
+      ItemCostAmount: 3
     - Id: grease
       DisplayName: "\u6F64\u6ED1\u6CB9"
       Stat: 6
-      ValuePerLevel: 0.5
-      MaxLevel: 80
+      ValuePerLevel: 0.25
+      MaxLevel: 4
       BaseCost: 800
-      CostGrowth: 1.2
+      CostGrowth: 3
       ItemCostId: 
       ItemCostAmount: 0
     - Id: hopper
       DisplayName: "\u5927\u578B\u30DB\u30C3\u30D1\u30FC"
       Stat: 7
       ValuePerLevel: 1
-      MaxLevel: 9
+      MaxLevel: 10
       BaseCost: 3000
-      CostGrowth: 2
+      CostGrowth: 2.2
       ItemCostId: tool_parts
       ItemCostAmount: 3
     - Id: motor
@@ -149,8 +149,8 @@ MonoBehaviour:
       MaxLevel: 1
       BaseCost: 10000
       CostGrowth: 1.5
-      ItemCostId: rare_parts
-      ItemCostAmount: 3
+      ItemCostId: tool_parts
+      ItemCostAmount: 5
     Products:
     - Id: bread
       DisplayName: "\u98DF\u30D1\u30F3"
@@ -163,6 +163,22 @@ MonoBehaviour:
     - Id: eggs
       DisplayName: "\u5375"
       Price: 250
+      UpgradeId: 
+    - Id: rice
+      DisplayName: "\u304A\u7C73 10kg"
+      Price: 4000
+      UpgradeId: 
+    - Id: beef
+      DisplayName: "\u3059\u304D\u713C\u304D\u8089"
+      Price: 20000
+      UpgradeId: 
+    - Id: rice_cooker
+      DisplayName: "\u708A\u98EF\u5668"
+      Price: 100000
+      UpgradeId: 
+    - Id: television
+      DisplayName: "\u30C6\u30EC\u30D3"
+      Price: 500000
       UpgradeId: 
     - Id: upgrade_shoes
       DisplayName: "\u904B\u52D5\u9774"
@@ -185,7 +201,7 @@ MonoBehaviour:
       Price: 0
       UpgradeId: card
     - Id: upgrade_delivery
-      DisplayName: "\u30CD\u30C3\u30C8\u30B9\u30FC\u30D1\u30FC"
+      DisplayName: "\u51FA\u5F35\u8CB7\u53D6"
       Price: 0
       UpgradeId: delivery
     - Id: upgrade_grease
@@ -201,3 +217,6 @@ MonoBehaviour:
       Price: 0
       UpgradeId: motor
     MoneyPerTicket: 100
+    GuaranteedGoldDraws: 1000000
+    OfflineHoursCap: 8
+    OfflineEfficiency: 0.5

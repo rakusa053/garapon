@@ -40,6 +40,10 @@ namespace Garapon.Core
             this.randomSource = randomSource;
         }
 
+        public GameData Data => data;
+
+        public PrizeTierDef Find(PrizeColor color) => data.PrizeTiers.Find(tier => tier.Color == color);
+
         public PrizeTierDef Resolve()
         {
             var roll = randomSource.Next(GameData.PartsPerMillionTotal);

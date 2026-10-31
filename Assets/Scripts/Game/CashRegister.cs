@@ -1,3 +1,5 @@
+using Garapon.Core;
+
 namespace Garapon.Game
 {
     public sealed class CashRegister : Interactable
@@ -7,7 +9,7 @@ namespace Garapon.Game
             get
             {
                 var session = GameSession.Instance;
-                return session.Cart.Count == 0 ? "カゴが空です" : $"レジで支払う {session.CartTotal():N0}円";
+                return session.Cart.Count == 0 ? "カゴが空です" : $"レジで支払う {NumberFormat.Yen(session.CartTotal())}";
             }
         }
 
@@ -22,7 +24,7 @@ namespace Garapon.Game
             var result = session.Economy.Checkout(session.Cart);
             session.Cart.Clear();
             session.Post(result.Success
-                ? $"お買い上げ {result.Total:N0}円。抽選券を{result.TicketsGranted}枚もらいました"
+                ? $"お買い上げ {NumberFormat.Yen(result.Total)}。抽選券を{NumberFormat.Japanese(result.TicketsGranted)}枚もらいました"
                 : "支払えないので、商品を棚に戻しました");
         }
     }

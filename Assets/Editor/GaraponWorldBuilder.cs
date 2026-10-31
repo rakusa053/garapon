@@ -310,9 +310,9 @@ namespace Garapon.Editor
         {
             var canvas = CreateCanvas();
             var status = ScreenText("Status", canvas, font, 46, TextAlignmentOptions.TopLeft,
-                new Vector2(0f, 1f), new Vector2(30f, -30f), new Vector2(800f, 400f));
+                new Vector2(0f, 1f), new Vector2(30f, -30f), new Vector2(900f, 520f));
             var inventory = ScreenText("Inventory", canvas, font, 42, TextAlignmentOptions.TopRight,
-                new Vector2(1f, 1f), new Vector2(-30f, -30f), new Vector2(600f, 500f));
+                new Vector2(1f, 1f), new Vector2(-30f, -30f), new Vector2(760f, 640f));
             var prompt = ScreenText("Prompt", canvas, font, 52, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 0f), new Vector2(0f, 90f), new Vector2(1500f, 90f));
             var message = ScreenText("Message", canvas, font, 60, TextAlignmentOptions.Center,
