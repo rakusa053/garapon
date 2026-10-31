@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using Garapon.Core;
 using NUnit.Framework;
+#if UNITY_5_3_OR_NEWER
 using UnityEngine;
+#endif
 
 namespace Garapon.Tests
 {
@@ -194,6 +196,37 @@ namespace Garapon.Tests
         }
 
         [Test]
+        public void UpgradesSharingAnItemCostNeedEnoughItemsForAll()
+        {
+            // Tongs need 1 tool part and the hopper needs 3, so 3 parts cannot pay for both.
+            state.Money = 100000;
+            state.AddItem("tool_parts", 3);
+
+            Assert.IsFalse(economy.Checkout(new[] { "upgrade_tongs", "upgrade_hopper" }).Success);
+            Assert.AreEqual(100000, state.Money);
+            Assert.AreEqual(3, state.GetItem("tool_parts"));
+            Assert.AreEqual(0, state.GetUpgradeLevel("tongs"));
+            Assert.AreEqual(0, state.GetUpgradeLevel("hopper"));
+
+            state.AddItem("tool_parts", 1);
+            Assert.IsTrue(economy.Checkout(new[] { "upgrade_tongs", "upgrade_hopper" }).Success);
+            Assert.AreEqual(0, state.GetItem("tool_parts"));
+            Assert.AreEqual(1, state.GetUpgradeLevel("tongs"));
+            Assert.AreEqual(1, state.GetUpgradeLevel("hopper"));
+        }
+
+        [Test]
+        public void CanAddToCartChecksItemCostsAlreadyInCart()
+        {
+            state.AddItem("rare_parts", 3);
+
+            Assert.IsTrue(economy.CanAddToCart(new string[0], "upgrade_motor"));
+            Assert.IsFalse(economy.CanAddToCart(new[] { "upgrade_robot" }, "upgrade_motor"));
+            Assert.IsFalse(economy.CanAddToCart(new[] { "upgrade_motor" }, "upgrade_motor"));
+            Assert.IsTrue(economy.CanAddToCart(new[] { "upgrade_robot" }, "bread"));
+        }
+
+        [Test]
         public void MaxedUpgradeCannotBePurchased()
         {
             state.Money = 1000000;
@@ -203,6 +236,8 @@ namespace Garapon.Tests
             Assert.IsFalse(economy.Checkout(new[] { "upgrade_delivery" }).Success);
         }
 
+#if UNITY_5_3_OR_NEWER
+        // JsonUtility only exists inside Unity, so the standalone .NET test run skips this test.
         [Test]
         public void StateSurvivesJsonRoundTrip()
         {
@@ -222,5 +257,6 @@ namespace Garapon.Tests
             Assert.AreEqual(1, restored.GetUpgradeLevel("shoes"));
             Assert.AreEqual(1, restored.GetDrawCount(PrizeColor.Red));
         }
+#endif
     }
 }

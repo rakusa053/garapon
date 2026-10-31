@@ -41,6 +41,13 @@ namespace Garapon.Game
                     session.Post($"{item.DisplayName}が{upgrade.ItemCostAmount}個必要です");
                     return;
                 }
+
+                if (!session.Economy.CanAddToCart(session.Cart, productId))
+                {
+                    var item = session.Data.FindItem(upgrade.ItemCostId);
+                    session.Post($"カゴの商品と合わせると{item.DisplayName}が足りません");
+                    return;
+                }
             }
 
             session.Cart.Add(productId);

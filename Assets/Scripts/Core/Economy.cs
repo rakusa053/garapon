@@ -67,26 +67,25 @@ namespace Garapon.Core
                 : upgrades.GetCost(data.FindUpgrade(product.UpgradeId));
         }
 
+        // Whether productId can join the cart: an upgrade may appear only once, must not be maxed,
+        // and every upgrade in the cart together must not need more items than the player owns.
+        public bool CanAddToCart(IReadOnlyList<string> cart, string productId)
+        {
+            var products = new List<string>(cart) { productId };
+            return TryGetUpgrades(products, out _);
+        }
+
         public CheckoutResult Checkout(IReadOnlyList<string> productIds)
         {
-            var upgradesInCart = new List<UpgradeDef>();
+            if (!TryGetUpgrades(productIds, out var upgradesInCart))
+            {
+                return default;
+            }
+
             var total = 0L;
             foreach (var productId in productIds)
             {
-                var product = data.FindProduct(productId);
-                total += GetPrice(product);
-                if (string.IsNullOrEmpty(product.UpgradeId))
-                {
-                    continue;
-                }
-
-                var upgrade = data.FindUpgrade(product.UpgradeId);
-                if (upgradesInCart.Contains(upgrade) || upgrades.IsMaxed(upgrade) || !upgrades.HasItemCost(upgrade))
-                {
-                    return default;
-                }
-
-                upgradesInCart.Add(upgrade);
+                total += GetPrice(data.FindProduct(productId));
             }
 
             var voucherPaid = PayableByVouchers(total);
@@ -103,6 +102,42 @@ namespace Garapon.Core
             }
 
             return new CheckoutResult(true, total, voucherPaid, GrantTickets(total));
+        }
+
+        bool TryGetUpgrades(IReadOnlyList<string> productIds, out List<UpgradeDef> upgradesInCart)
+        {
+            upgradesInCart = new List<UpgradeDef>();
+            var itemCosts = new Dictionary<string, long>();
+            foreach (var productId in productIds)
+            {
+                var product = data.FindProduct(productId);
+                if (string.IsNullOrEmpty(product.UpgradeId))
+                {
+                    continue;
+                }
+
+                var upgrade = data.FindUpgrade(product.UpgradeId);
+                if (upgradesInCart.Contains(upgrade) || upgrades.IsMaxed(upgrade))
+                {
+                    return false;
+                }
+
+                if (!string.IsNullOrEmpty(upgrade.ItemCostId))
+                {
+                    itemCosts.TryGetValue(upgrade.ItemCostId, out var needed);
+                    needed += upgrade.ItemCostAmount;
+                    if (state.GetItem(upgrade.ItemCostId) < needed)
+                    {
+                        return false;
+                    }
+
+                    itemCosts[upgrade.ItemCostId] = needed;
+                }
+
+                upgradesInCart.Add(upgrade);
+            }
+
+            return true;
         }
 
         long PayableByVouchers(long total)

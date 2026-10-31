@@ -38,3 +38,9 @@ crashlytics-build.properties
 
 # OS
 .DS_Store
+
+# Standalone .NET test run for Garapon.Core
+!/CoreTests/*.csproj
+/CoreTests/bin/
+/CoreTests/obj/
+/CoreTests/TestResults/
