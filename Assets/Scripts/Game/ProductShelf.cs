@@ -16,12 +16,25 @@ namespace Garapon.Game
         {
             get
             {
-                var price = GameSession.Instance.Economy.GetPrice(Product);
+                var session = GameSession.Instance;
+                var price = session.Economy.GetPrice(Product);
                 var upgrade = Upgrade;
-                var detail = upgrade != null
-                    ? $"({UpgradeText.Effect(upgrade)})"
-                    : $"(抽選券 約{NumberFormat.Japanese(price / GameSession.Instance.Data.MoneyPerTicket)}枚分)";
-                return $"{Product.DisplayName} {NumberFormat.Yen(price)}{detail} をカゴへ";
+                if (upgrade != null)
+                {
+                    var level = session.State.GetUpgradeLevel(upgrade.Id);
+                    var milestone = session.Upgrades.NextMilestone(upgrade);
+                    var milestoneText = milestone > 0 ? $" / Lv{milestone}で効果×{upgrade.MilestoneMultiplier}" : string.Empty;
+                    return $"{Product.DisplayName} Lv{level}→{level + 1} {NumberFormat.Yen(price)}({UpgradeText.Effect(upgrade)}{milestoneText}) をカゴへ";
+                }
+
+                var quantity = session.BulkQuantity(productId);
+                var tickets = price * quantity / session.Data.MoneyPerTicket;
+                if (session.Economy.IsOnSale(Product))
+                {
+                    tickets = (long)(tickets * session.Data.SaleTicketMultiplier);
+                }
+
+                return $"{Product.DisplayName} ×{NumberFormat.Japanese(quantity)} {NumberFormat.Yen(price * quantity)}(抽選券 約{NumberFormat.Japanese(tickets)}枚分) をカゴへ  [Q] {session.BuyModeName}";
             }
         }
 
@@ -38,9 +51,17 @@ namespace Garapon.Game
             }
 
             var upgrade = Upgrade;
-            label.text = upgrade != null && session.Upgrades.IsMaxed(upgrade)
+            var sale = session.Economy.IsOnSale(Product) ? "<color=#E03030>特売!</color> " : string.Empty;
+            if (upgrade == null)
+            {
+                label.text = $"{sale}{Product.DisplayName}\n{NumberFormat.Yen(session.Economy.GetPrice(Product))}";
+                return;
+            }
+
+            var level = session.State.GetUpgradeLevel(upgrade.Id);
+            label.text = session.Upgrades.IsMaxed(upgrade)
                 ? $"{Product.DisplayName}\n売り切れ"
-                : $"{Product.DisplayName}\n{NumberFormat.Yen(session.Economy.GetPrice(Product))}";
+                : $"{sale}{Product.DisplayName} Lv{level}\n{NumberFormat.Yen(session.Economy.GetPrice(Product))}";
         }
 
         public override void Interact()
@@ -68,10 +89,15 @@ namespace Garapon.Game
                     session.Post($"カゴの商品と合わせると{item.DisplayName}が足りません");
                     return;
                 }
+
+                session.Cart.Add(productId);
+                session.Post($"{Product.DisplayName}をカゴに入れました");
+                return;
             }
 
-            session.Cart.Add(productId);
-            session.Post($"{Product.DisplayName}をカゴに入れました");
+            var quantity = session.BulkQuantity(productId);
+            session.Cart.Add(productId, quantity);
+            session.Post($"{Product.DisplayName}を{NumberFormat.Japanese(quantity)}個カゴに入れました");
         }
     }
 }

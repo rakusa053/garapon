@@ -79,6 +79,10 @@ MonoBehaviour:
       CostGrowth: 1.5
       ItemCostId: 
       ItemCostAmount: 0
+      MilestoneEvery: 0
+      MilestoneMultiplier: 1
+      RequiresId: 
+      RequiresLevel: 0
     - Id: tongs
       DisplayName: "\u9577\u3044\u30C8\u30F3\u30B0"
       Stat: 1
@@ -88,24 +92,36 @@ MonoBehaviour:
       CostGrowth: 1.5
       ItemCostId: tool_parts
       ItemCostAmount: 1
+      MilestoneEvery: 0
+      MilestoneMultiplier: 1
+      RequiresId: 
+      RequiresLevel: 0
     - Id: bag
       DisplayName: "\u5206\u5225\u888B"
       Stat: 2
       ValuePerLevel: 0.5
       MaxLevel: 40
       BaseCost: 500
-      CostGrowth: 1.3
+      CostGrowth: 1.36
       ItemCostId: 
       ItemCostAmount: 0
+      MilestoneEvery: 10
+      MilestoneMultiplier: 1.25
+      RequiresId: 
+      RequiresLevel: 0
     - Id: robot
       DisplayName: "\u3054\u307F\u62FE\u3044\u30ED\u30DC"
       Stat: 3
       ValuePerLevel: 2
       MaxLevel: 60
       BaseCost: 2000
-      CostGrowth: 1.25
+      CostGrowth: 1.3
       ItemCostId: rare_parts
       ItemCostAmount: 1
+      MilestoneEvery: 10
+      MilestoneMultiplier: 1.25
+      RequiresId: 
+      RequiresLevel: 0
     - Id: card
       DisplayName: "\u30DD\u30A4\u30F3\u30C8\u30AB\u30FC\u30C9"
       Stat: 4
@@ -115,6 +131,10 @@ MonoBehaviour:
       CostGrowth: 1.4
       ItemCostId: 
       ItemCostAmount: 0
+      MilestoneEvery: 0
+      MilestoneMultiplier: 1
+      RequiresId: 
+      RequiresLevel: 0
     - Id: delivery
       DisplayName: "\u51FA\u5F35\u8CB7\u53D6"
       Stat: 5
@@ -124,6 +144,10 @@ MonoBehaviour:
       CostGrowth: 1.5
       ItemCostId: rare_parts
       ItemCostAmount: 3
+      MilestoneEvery: 0
+      MilestoneMultiplier: 1
+      RequiresId: 
+      RequiresLevel: 0
     - Id: grease
       DisplayName: "\u6F64\u6ED1\u6CB9"
       Stat: 6
@@ -133,15 +157,23 @@ MonoBehaviour:
       CostGrowth: 3
       ItemCostId: 
       ItemCostAmount: 0
+      MilestoneEvery: 0
+      MilestoneMultiplier: 1
+      RequiresId: 
+      RequiresLevel: 0
     - Id: hopper
       DisplayName: "\u5927\u578B\u30DB\u30C3\u30D1\u30FC"
       Stat: 7
       ValuePerLevel: 1
       MaxLevel: 10
       BaseCost: 3000
-      CostGrowth: 2.5
+      CostGrowth: 3
       ItemCostId: tool_parts
       ItemCostAmount: 3
+      MilestoneEvery: 0
+      MilestoneMultiplier: 1
+      RequiresId: 
+      RequiresLevel: 0
     - Id: motor
       DisplayName: "\u81EA\u52D5\u30E2\u30FC\u30BF\u30FC"
       Stat: 8
@@ -151,6 +183,36 @@ MonoBehaviour:
       CostGrowth: 1.5
       ItemCostId: tool_parts
       ItemCostAmount: 5
+      MilestoneEvery: 0
+      MilestoneMultiplier: 1
+      RequiresId: 
+      RequiresLevel: 0
+    - Id: truck
+      DisplayName: "\u3054\u307F\u53CE\u96C6\u8ECA"
+      Stat: 9
+      ValuePerLevel: 0.03
+      MaxLevel: 1
+      BaseCost: 300000
+      CostGrowth: 1.5
+      ItemCostId: rare_parts
+      ItemCostAmount: 5
+      MilestoneEvery: 0
+      MilestoneMultiplier: 1
+      RequiresId: robot
+      RequiresLevel: 10
+    - Id: nametag
+      DisplayName: "\u5E38\u9023\u3055\u3093\u306E\u540D\u672D"
+      Stat: 10
+      ValuePerLevel: 0.02
+      MaxLevel: 1
+      BaseCost: 150000
+      CostGrowth: 1.5
+      ItemCostId: 
+      ItemCostAmount: 0
+      MilestoneEvery: 0
+      MilestoneMultiplier: 1
+      RequiresId: card
+      RequiresLevel: 10
     Products:
     - Id: bread
       DisplayName: "\u98DF\u30D1\u30F3"
@@ -216,6 +278,57 @@ MonoBehaviour:
       DisplayName: "\u81EA\u52D5\u30E2\u30FC\u30BF\u30FC"
       Price: 0
       UpgradeId: motor
+    - Id: upgrade_truck
+      DisplayName: "\u3054\u307F\u53CE\u96C6\u8ECA"
+      Price: 0
+      UpgradeId: truck
+    - Id: upgrade_nametag
+      DisplayName: "\u5E38\u9023\u3055\u3093\u306E\u540D\u672D"
+      Price: 0
+      UpgradeId: nametag
+    Perks:
+    - Id: manju
+      DisplayName: "\u6E29\u6CC9\u307E\u3093\u3058\u3085\u3046"
+      Stat: 0
+      ValuePerLevel: 20000
+      MaxLevel: 5
+      BaseCost: 2
+      CostGrowth: 2
+    - Id: my_bag
+      DisplayName: "\u30DE\u30A4\u5206\u5225\u888B"
+      Stat: 1
+      ValuePerLevel: 5
+      MaxLevel: 3
+      BaseCost: 4
+      CostGrowth: 2
+    - Id: charm
+      DisplayName: "\u65C5\u306E\u304A\u5B88\u308A"
+      Stat: 3
+      ValuePerLevel: 0.25
+      MaxLevel: 4
+      BaseCost: 3
+      CostGrowth: 2
+    - Id: master
+      DisplayName: "\u30AC\u30E9\u30DD\u30F3\u540D\u4EBA"
+      Stat: 2
+      ValuePerLevel: 0.2
+      MaxLevel: 5
+      BaseCost: 4
+      CostGrowth: 1.8
+    - Id: golden
+      DisplayName: "\u91D1\u306E\u30AC\u30E9\u30DD\u30F3"
+      Stat: 4
+      ValuePerLevel: 0.1
+      MaxLevel: 5
+      BaseCost: 6
+      CostGrowth: 2
+    - Id: net_super
+      DisplayName: "\u30CD\u30C3\u30C8\u30B9\u30FC\u30D1\u30FC"
+      Stat: 5
+      ValuePerLevel: 1
+      MaxLevel: 1
+      BaseCost: 10
+      CostGrowth: 2
     MoneyPerTicket: 100
     GuaranteedGoldDraws: 1000000
     OfflineHoursCap: 8
@@ -227,3 +340,10 @@ MonoBehaviour:
     ComboMaxSteps: 50
     StampBonus: 0.03
     ClearBonus: 1
+    SaleIntervalMin: 90
+    SaleIntervalMax: 180
+    SaleSeconds: 45
+    SaleDiscount: 0.3
+    SaleTicketMultiplier: 2
+    SouvenirUnit: 500000
+    AutoShopShare: 0.5

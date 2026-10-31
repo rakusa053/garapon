@@ -17,6 +17,23 @@ namespace Garapon.Core
                 case UpgradeStat.CrankSpeed: return $"回転速度 +{percent}%";
                 case UpgradeStat.DrawBatch: return "1回転の抽選数が2倍";
                 case UpgradeStat.AutoCrank: return "ガラポンを自動で回す";
+                case UpgradeStat.RobotPerTrashLevel: return $"分別袋1レベルごとにロボ +{percent}%";
+                case UpgradeStat.TicketPerStamp: return $"スタンプ1個ごとに抽選券 +{percent}%";
+                default: return string.Empty;
+            }
+        }
+
+        public static string Effect(PerkDef perk)
+        {
+            var percent = (int)System.Math.Round(perk.ValuePerLevel * 100);
+            switch (perk.Stat)
+            {
+                case PerkStat.StartMoney: return $"次の周回から 開始時の所持金 +{NumberFormat.Yen((long)perk.ValuePerLevel)}";
+                case PerkStat.StartTrashValueLevels: return $"次の周回から 分別袋Lv{perk.ValuePerLevel}でスタート";
+                case PerkStat.CrankSpeed: return $"ガラポンの回転速度 +{percent}%";
+                case PerkStat.LuckyRate: return $"ラッキーごみの出現 +{percent}%";
+                case PerkStat.GuaranteeReduction: return $"金玉確定までの回数 -{percent}%";
+                case PerkStat.AutoShop: return "出張買取の売上の半分で自動的に抽選券を買う";
                 default: return string.Empty;
             }
         }

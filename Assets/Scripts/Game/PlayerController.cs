@@ -51,6 +51,12 @@ namespace Garapon.Game
             }
 
             interactWasHeld = interactHeld;
+
+            var keyboard = Keyboard.current;
+            if (keyboard != null && keyboard.qKey.wasPressedThisFrame)
+            {
+                GameSession.Instance.CycleBuyMode();
+            }
         }
 
         void Move()

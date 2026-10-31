@@ -23,7 +23,21 @@ namespace Garapon.Core
         Delivery,
         CrankSpeed,
         DrawBatch,
-        AutoCrank
+        AutoCrank,
+        // Synergies: the robot gets faster per level of trash-value upgrades, tickets grow per stamp.
+        RobotPerTrashLevel,
+        TicketPerStamp
+    }
+
+    // Permanent perks bought with souvenirs from clearing, which survive every reset.
+    public enum PerkStat
+    {
+        StartMoney,
+        StartTrashValueLevels,
+        CrankSpeed,
+        LuckyRate,
+        GuaranteeReduction,
+        AutoShop
     }
 
     [Serializable]
@@ -64,6 +78,27 @@ namespace Garapon.Core
         public double CostGrowth = 1.5;
         public string ItemCostId;
         public int ItemCostAmount;
+
+        // Every MilestoneEvery levels the whole effect is multiplied by MilestoneMultiplier,
+        // like the unlocks at 25, 50 and 100 owned in AdVenture Capitalist. 0 turns it off.
+        public int MilestoneEvery;
+        public double MilestoneMultiplier = 1;
+
+        // Not stocked until another upgrade reaches a level, like Cookie Clicker's unlockable upgrades.
+        public string RequiresId;
+        public int RequiresLevel;
+    }
+
+    [Serializable]
+    public class PerkDef
+    {
+        public string Id;
+        public string DisplayName;
+        public PerkStat Stat;
+        public double ValuePerLevel;
+        public int MaxLevel;
+        public long BaseCost;
+        public double CostGrowth = 2;
     }
 
     [Serializable]
@@ -85,6 +120,7 @@ namespace Garapon.Core
         public List<TrashDef> Trash = new List<TrashDef>();
         public List<UpgradeDef> Upgrades = new List<UpgradeDef>();
         public List<ProductDef> Products = new List<ProductDef>();
+        public List<PerkDef> Perks = new List<PerkDef>();
         public long MoneyPerTicket = 100;
 
         // The draw that is guaranteed to be gold if luck has not delivered it sooner. 0 turns it off.
@@ -102,6 +138,19 @@ namespace Garapon.Core
         public int ComboMaxSteps = 50;
         public double StampBonus = 0.03;
         public double ClearBonus = 1;
+
+        // Time sales: now and then one stocked product is discounted (upgrades) or gives extra tickets (groceries).
+        public double SaleIntervalMin = 90;
+        public double SaleIntervalMax = 180;
+        public double SaleSeconds = 45;
+        public double SaleDiscount = 0.3;
+        public double SaleTicketMultiplier = 2;
+
+        // Souvenirs for clearing: the total ever earned is the square root of lifetime earnings divided by this.
+        public double SouvenirUnit = 500000;
+
+        // Share of delivery sales spent on tickets automatically once the online-shopping perk is owned.
+        public double AutoShopShare = 0.5;
 
         public long AverageTrashValue()
         {
@@ -122,6 +171,7 @@ namespace Garapon.Core
         public ItemDef FindItem(string id) => Items.Find(item => item.Id == id);
         public UpgradeDef FindUpgrade(string id) => Upgrades.Find(upgrade => upgrade.Id == id);
         public ProductDef FindProduct(string id) => Products.Find(product => product.Id == id);
+        public PerkDef FindPerk(string id) => Perks.Find(perk => perk.Id == id);
 
         public static GameData CreateDefault()
         {
@@ -146,13 +196,15 @@ namespace Garapon.Core
 
             data.Upgrades.Add(new UpgradeDef { Id = "shoes", DisplayName = "運動靴", Stat = UpgradeStat.MoveSpeed, ValuePerLevel = 0.25, MaxLevel = 10, BaseCost = 200 });
             data.Upgrades.Add(new UpgradeDef { Id = "tongs", DisplayName = "長いトング", Stat = UpgradeStat.PickupRadius, ValuePerLevel = 0.5, MaxLevel = 10, BaseCost = 300, ItemCostId = "tool_parts", ItemCostAmount = 1 });
-            data.Upgrades.Add(new UpgradeDef { Id = "bag", DisplayName = "分別袋", Stat = UpgradeStat.TrashValue, ValuePerLevel = 0.5, MaxLevel = 40, BaseCost = 500, CostGrowth = 1.3 });
-            data.Upgrades.Add(new UpgradeDef { Id = "robot", DisplayName = "ごみ拾いロボ", Stat = UpgradeStat.AutoCollect, ValuePerLevel = 2, MaxLevel = 60, BaseCost = 2000, CostGrowth = 1.25, ItemCostId = "rare_parts", ItemCostAmount = 1 });
+            data.Upgrades.Add(new UpgradeDef { Id = "bag", DisplayName = "分別袋", Stat = UpgradeStat.TrashValue, ValuePerLevel = 0.5, MaxLevel = 40, BaseCost = 500, CostGrowth = 1.36, MilestoneEvery = 10, MilestoneMultiplier = 1.25 });
+            data.Upgrades.Add(new UpgradeDef { Id = "robot", DisplayName = "ごみ拾いロボ", Stat = UpgradeStat.AutoCollect, ValuePerLevel = 2, MaxLevel = 60, BaseCost = 2000, CostGrowth = 1.3, ItemCostId = "rare_parts", ItemCostAmount = 1, MilestoneEvery = 10, MilestoneMultiplier = 1.25 });
             data.Upgrades.Add(new UpgradeDef { Id = "card", DisplayName = "ポイントカード", Stat = UpgradeStat.TicketRate, ValuePerLevel = 0.1, MaxLevel = 30, BaseCost = 1000, CostGrowth = 1.4 });
             data.Upgrades.Add(new UpgradeDef { Id = "delivery", DisplayName = "出張買取", Stat = UpgradeStat.Delivery, ValuePerLevel = 1, MaxLevel = 1, BaseCost = 20000, ItemCostId = "rare_parts", ItemCostAmount = 3 });
             data.Upgrades.Add(new UpgradeDef { Id = "grease", DisplayName = "潤滑油", Stat = UpgradeStat.CrankSpeed, ValuePerLevel = 0.25, MaxLevel = 4, BaseCost = 800, CostGrowth = 3 });
-            data.Upgrades.Add(new UpgradeDef { Id = "hopper", DisplayName = "大型ホッパー", Stat = UpgradeStat.DrawBatch, ValuePerLevel = 1, MaxLevel = 10, BaseCost = 3000, CostGrowth = 2.5, ItemCostId = "tool_parts", ItemCostAmount = 3 });
+            data.Upgrades.Add(new UpgradeDef { Id = "hopper", DisplayName = "大型ホッパー", Stat = UpgradeStat.DrawBatch, ValuePerLevel = 1, MaxLevel = 10, BaseCost = 3000, CostGrowth = 3.0, ItemCostId = "tool_parts", ItemCostAmount = 3 });
             data.Upgrades.Add(new UpgradeDef { Id = "motor", DisplayName = "自動モーター", Stat = UpgradeStat.AutoCrank, ValuePerLevel = 1, MaxLevel = 1, BaseCost = 10000, ItemCostId = "tool_parts", ItemCostAmount = 5 });
+            data.Upgrades.Add(new UpgradeDef { Id = "truck", DisplayName = "ごみ収集車", Stat = UpgradeStat.RobotPerTrashLevel, ValuePerLevel = 0.03, MaxLevel = 1, BaseCost = 300000, ItemCostId = "rare_parts", ItemCostAmount = 5, RequiresId = "robot", RequiresLevel = 10 });
+            data.Upgrades.Add(new UpgradeDef { Id = "nametag", DisplayName = "常連さんの名札", Stat = UpgradeStat.TicketPerStamp, ValuePerLevel = 0.02, MaxLevel = 1, BaseCost = 150000, RequiresId = "card", RequiresLevel = 10 });
 
             data.Products.Add(new ProductDef { Id = "bread", DisplayName = "食パン", Price = 150 });
             data.Products.Add(new ProductDef { Id = "milk", DisplayName = "牛乳", Price = 200 });
@@ -166,6 +218,13 @@ namespace Garapon.Core
             {
                 data.Products.Add(new ProductDef { Id = "upgrade_" + upgrade.Id, DisplayName = upgrade.DisplayName, UpgradeId = upgrade.Id });
             }
+
+            data.Perks.Add(new PerkDef { Id = "manju", DisplayName = "温泉まんじゅう", Stat = PerkStat.StartMoney, ValuePerLevel = 20000, MaxLevel = 5, BaseCost = 2 });
+            data.Perks.Add(new PerkDef { Id = "my_bag", DisplayName = "マイ分別袋", Stat = PerkStat.StartTrashValueLevels, ValuePerLevel = 5, MaxLevel = 3, BaseCost = 4 });
+            data.Perks.Add(new PerkDef { Id = "charm", DisplayName = "旅のお守り", Stat = PerkStat.LuckyRate, ValuePerLevel = 0.25, MaxLevel = 4, BaseCost = 3 });
+            data.Perks.Add(new PerkDef { Id = "master", DisplayName = "ガラポン名人", Stat = PerkStat.CrankSpeed, ValuePerLevel = 0.2, MaxLevel = 5, BaseCost = 4, CostGrowth = 1.8 });
+            data.Perks.Add(new PerkDef { Id = "golden", DisplayName = "金のガラポン", Stat = PerkStat.GuaranteeReduction, ValuePerLevel = 0.1, MaxLevel = 5, BaseCost = 6 });
+            data.Perks.Add(new PerkDef { Id = "net_super", DisplayName = "ネットスーパー", Stat = PerkStat.AutoShop, ValuePerLevel = 1, MaxLevel = 1, BaseCost = 10 });
 
             return data;
         }

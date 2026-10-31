@@ -19,15 +19,18 @@ namespace Garapon.Game
         void Start()
         {
             state = SaveFile.Load();
-            var next = state.NextRun();
-            var bonus = dataAsset != null ? 1 + next.Clears * dataAsset.Data.ClearBonus : next.Clears + 1;
+            var data = dataAsset.Data;
+            var next = Prestige.NextRun(data, state);
+            var bonus = 1 + next.Clears * data.ClearBonus;
             resultText.text =
                 "温泉旅行に出発!\n\n" +
                 $"プレイ時間 {Clock(state.PlaySeconds)}\n" +
                 (next.BestClearSeconds > 0 ? $"最速記録 {Clock(next.BestClearSeconds)}\n" : string.Empty) +
                 $"抽選回数 {NumberFormat.Japanese(state.TotalDraws)}回\n" +
-                $"スタンプ {state.Stamps.Count}/{StampCard.All.Count}\n\n" +
-                $"[R] {next.Clears + 1}周目へ(思い出ボーナス 買取×{bonus}、スタンプは持ち越し)\n" +
+                $"スタンプ {state.Stamps.Count}/{StampCard.All.Count}\n" +
+                $"おみやげ +{NumberFormat.Japanese(next.SouvenirsEarned - state.SouvenirsEarned)}個(手持ち {NumberFormat.Japanese(next.Souvenirs)}個)\n" +
+                "町のおみやげ交換所で、ずっと残る特典と交換できます\n\n" +
+                $"[R] {next.Clears + 1}周目へ(思い出ボーナス 買取×{bonus}、スタンプ・おみやげ・特典は持ち越し)\n" +
                 "[X] 記録も消して最初から";
         }
 
@@ -41,7 +44,7 @@ namespace Garapon.Game
 
             if (keyboard.rKey.wasPressedThisFrame)
             {
-                SaveFile.Save(state.NextRun());
+                SaveFile.Save(Prestige.NextRun(dataAsset.Data, state));
                 SceneManager.LoadScene(TownScene);
             }
             else if (keyboard.xKey.wasPressedThisFrame)

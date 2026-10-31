@@ -33,6 +33,8 @@ namespace Garapon.Simulation
         public readonly Progression Progression;
         readonly Combo combo;
         readonly LuckyTrash lucky;
+        readonly BargainSale sale;
+        readonly SystemRandomSource saleRandom;
         readonly Random random;
         readonly SystemRandomSource luckyRandom;
         readonly TrashDef averageTrash;
@@ -41,7 +43,7 @@ namespace Garapon.Simulation
         double nextLucky;
 
         // Switches for measuring each system on its own.
-        public static bool NoCombo, NoLucky, NoStamps, NoStocking;
+        public static bool NoCombo, NoLucky, NoStamps, NoStocking, NoSale, NoBulk;
 
         public double Time;
         public readonly Dictionary<string, double> FirstPurchase = new Dictionary<string, double>();
@@ -60,13 +62,16 @@ namespace Garapon.Simulation
             Progression = new Progression(data, State, Upgrades);
             combo = new Combo(data, State);
             lucky = new LuckyTrash(data, State, Upgrades, Economy);
+            sale = new BargainSale(data, State, Upgrades, Progression);
+            saleRandom = new SystemRandomSource(seed * 15485863);
             random = new Random(seed * 7919);
             luckyRandom = new SystemRandomSource(seed * 104729);
             averageTrash = new TrashDef { Id = "average", Value = data.AverageTrashValue() };
             nextLucky = NextLuckyDelay();
         }
 
-        double NextLuckyDelay() => LuckySpawnMin + random.NextDouble() * (LuckySpawnMax - LuckySpawnMin);
+        double NextLuckyDelay() =>
+            (LuckySpawnMin + random.NextDouble() * (LuckySpawnMax - LuckySpawnMin)) / Prestige.LuckyRate(Data, State);
 
         // In legacy mode the five automation upgrades can be bought but do nothing, as before.
         long DrawsPerCrank => legacy ? 1 : Upgrades.DrawsPerCrank;
@@ -127,6 +132,11 @@ namespace Garapon.Simulation
             if (!legacy)
             {
                 Automation.Tick(seconds);
+            }
+
+            if (!noFun && !NoSale)
+            {
+                sale.Tick(seconds, saleRandom);
             }
 
             if (noFun || NoLucky)
@@ -201,23 +211,34 @@ namespace Garapon.Simulation
                 }
             }
 
-            // Spend part of what is left on groceries for tickets, biggest items first.
+            // Spend part of what is left on groceries for tickets, biggest items first. A grocery on
+            // sale gets the whole budget, since its tickets are doubled.
             var budget = (long)(State.Money * TicketBudgetShare) + VoucherValue();
             var groceries = Data.Products
                 .Where(product => string.IsNullOrEmpty(product.UpgradeId) && (noFun || NoStocking || Progression.IsRevealed(product)))
-                .OrderByDescending(product => product.Price)
+                .OrderByDescending(product => Economy.IsOnSale(product))
+                .ThenByDescending(product => product.Price)
                 .ToList();
-            var cart = new List<string>();
-            foreach (var product in groceries)
+            if (groceries.Count > 0 && Economy.IsOnSale(groceries[0]))
             {
-                while (product.Price <= budget && cart.Count < 50)
-                {
-                    cart.Add(product.Id);
-                    budget -= product.Price;
-                }
+                budget = State.Money + VoucherValue();
             }
 
-            if (cart.Count > 0)
+            var cart = new ShoppingCart();
+            foreach (var product in groceries)
+            {
+                // Without bulk buying, one press puts one item in the cart; a player stops after about 50 presses.
+                var quantity = budget / product.Price;
+                if (NoBulk || noFun)
+                {
+                    quantity = Math.Min(quantity, 50 - cart.Count);
+                }
+
+                cart.Add(product.Id, quantity);
+                budget -= quantity * product.Price;
+            }
+
+            if (!cart.IsEmpty)
             {
                 Economy.Checkout(cart);
             }
@@ -248,6 +269,22 @@ namespace Garapon.Simulation
             return values.Count == 0 ? double.NaN : values[values.Count / 2];
         }
 
+        // Spends souvenirs the way a player might: the cheapest perk first, until nothing fits.
+        static void BuyPerks(GameData data, GameState state)
+        {
+            while (true)
+            {
+                var perk = data.Perks.Where(candidate => Prestige.CanBuy(state, candidate))
+                    .OrderBy(candidate => Prestige.Cost(state, candidate)).FirstOrDefault();
+                if (perk == null)
+                {
+                    return;
+                }
+
+                Prestige.Buy(state, perk);
+            }
+        }
+
         static void Main(string[] args)
         {
             if (args.Contains("--write-asset"))
@@ -270,26 +307,50 @@ namespace Garapon.Simulation
                 data.Products.RemoveAll(product => string.IsNullOrEmpty(product.UpgradeId) && product.Price > 250);
             }
 
+            if (args.Contains("--no-milestones"))
+            {
+                data.Upgrades.ForEach(upgrade => upgrade.MilestoneEvery = 0);
+            }
+
+            if (args.Contains("--no-synergy"))
+            {
+                data.Upgrades.RemoveAll(upgrade => !string.IsNullOrEmpty(upgrade.RequiresId));
+                data.Products.RemoveAll(product => product.UpgradeId != null && data.FindUpgrade(product.UpgradeId) == null);
+            }
+
             var noFun = legacy || args.Contains("--no-fun");
             PlayerModel.NoCombo = args.Contains("--no-combo");
             PlayerModel.NoLucky = args.Contains("--no-lucky");
             PlayerModel.NoStamps = args.Contains("--no-stamps");
             PlayerModel.NoStocking = args.Contains("--no-stocking");
+            PlayerModel.NoSale = args.Contains("--no-sale");
+            PlayerModel.NoBulk = args.Contains("--no-bulk");
+            const int laterRuns = 3;
             var models = new List<PlayerModel>();
-            var secondRuns = new List<PlayerModel>();
+            var laterModels = Enumerable.Range(0, laterRuns).Select(_ => new List<PlayerModel>()).ToList();
+            var souvenirs = Enumerable.Range(0, laterRuns + 1).Select(_ => new List<double>()).ToList();
             for (var seed = 1; seed <= runs; seed++)
             {
                 var model = new PlayerModel(data, new GameState(), seed, legacy, noFun);
                 model.Run(maxHours * 3600.0);
                 models.Add(model);
 
-                if (model.State.Cleared && !noFun)
+                var previous = model;
+                for (var run = 0; run < laterRuns && previous.State.Cleared && !noFun; run++)
                 {
-                    model.State.PlaySeconds = model.Time;
-                    var second = new PlayerModel(data, model.State.NextRun(), seed + 1000, legacy, noFun);
-                    second.Run(maxHours * 3600.0);
-                    secondRuns.Add(second);
-                    if (args.Contains("--debug")) Console.WriteLine($"seed {seed}: first {Clock(model.Time)} second {Clock(second.Time)} draws {second.State.TotalDraws:N0} buys " + string.Join(" ", second.FirstPurchase.Select(p => p.Key + "@" + Clock(p.Value))));
+                    previous.State.PlaySeconds = previous.Time;
+                    var next = args.Contains("--no-souvenirs") ? previous.State.NextRun() : Prestige.NextRun(data, previous.State);
+                    souvenirs[run].Add(next.SouvenirsEarned);
+                    if (!args.Contains("--no-perks"))
+                    {
+                        BuyPerks(data, next);
+                    }
+
+                    var model2 = new PlayerModel(data, next, seed + 1000 * (run + 1), legacy, noFun);
+                    model2.Run(maxHours * 3600.0);
+                    laterModels[run].Add(model2);
+                    if (args.Contains("--debug")) Console.WriteLine($"seed {seed} run {run + 2}: {Clock(model2.Time)} souvenirs {next.SouvenirsEarned} perks " + string.Join(" ", next.Perks.Select(p => p.Id + p.Count)));
+                    previous = model2;
                 }
             }
 
@@ -303,6 +364,10 @@ namespace Garapon.Simulation
                 var times = models.Where(m => m.FirstPurchase.ContainsKey(upgrade.Id)).Select(m => m.FirstPurchase[upgrade.Id]).ToList();
                 Console.WriteLine($"  {upgrade.DisplayName,-10} {Clock(Median(times)),9}  ({times.Count}/{runs} runs)");
             }
+
+            Console.WriteLine("\nUpgrade level at first clear (median):");
+            Console.WriteLine("  " + string.Join("  ", data.Upgrades.Select(upgrade =>
+                $"{upgrade.Id} {Median(models.Select(m => (double)m.State.GetUpgradeLevel(upgrade.Id)).ToList())}/{upgrade.MaxLevel}")));
 
             Console.WriteLine("\nDraw milestones (median time reached):");
             foreach (var milestone in new long[] { 10, 100, 1000, 10000, 100000, 500000, 1000000 })
@@ -324,11 +389,16 @@ namespace Garapon.Simulation
                 Console.WriteLine($"\nStamps at first clear (median): {Median(models.Select(m => (double)m.State.Stamps.Count).ToList())}/{StampCard.All.Count}");
                 Console.WriteLine($"Lucky trash caught (median): {Median(models.Select(m => (double)m.State.LuckyCollected).ToList())}");
                 Console.WriteLine($"Best combo (median): {Median(models.Select(m => (double)m.State.BestCombo).ToList())}");
-                var secondTimes = secondRuns.Where(m => m.State.Cleared).Select(m => m.Time).ToList();
-                if (secondTimes.Count > 0)
+                Console.WriteLine($"Sale purchases in first run (median): {Median(models.Select(m => (double)m.State.SaleBuys).ToList())}");
+                for (var run = 0; run < laterRuns; run++)
                 {
-                    secondTimes.Sort();
-                    Console.WriteLine($"Second run clear: fastest {Clock(secondTimes.First())}, median {Clock(Median(secondTimes))}, slowest {Clock(secondTimes.Last())}");
+                    var times = laterModels[run].Where(m => m.State.Cleared).Select(m => m.Time).ToList();
+                    if (times.Count > 0)
+                    {
+                        times.Sort();
+                        Console.WriteLine($"Run {run + 2} clear: fastest {Clock(times.First())}, median {Clock(Median(times))}, slowest {Clock(times.Last())}" +
+                            $"  (souvenirs earned so far, median {Median(souvenirs[run])})");
+                    }
                 }
             }
 

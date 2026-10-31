@@ -35,7 +35,10 @@ namespace Garapon.Core
             Make("lucky_20", "ラッキーごみ20個", (s, u) => s.LuckyCollected >= 20),
             Make("combo_30", "30コンボ", (s, u) => s.BestCombo >= 30),
             Make("combo_100", "100コンボ", (s, u) => s.BestCombo >= 100),
-            Make("cleared", "温泉旅行に行った", (s, u) => s.Clears >= 1)
+            Make("sale", "タイムセールで買った", (s, u) => s.SaleBuys >= 1),
+            Make("milestone", "強化の節目に到達", (s, u) => u.ReachedMilestone),
+            Make("cleared", "温泉旅行に行った", (s, u) => s.Clears >= 1),
+            Make("perk", "おみやげを交換した", (s, u) => s.Perks.Count > 0)
         };
 
         // Adds every newly earned stamp to the card and returns them, so they can be announced.

@@ -8,6 +8,14 @@ using UnityEngine.SceneManagement;
 
 namespace Garapon.Game
 {
+    // How many groceries one press of [E] puts in the cart, switched with [Q].
+    public enum BuyMode
+    {
+        One,
+        Ten,
+        Max
+    }
+
     public sealed class GameSession : MonoBehaviour
     {
         const float AutosaveInterval = 30f;
@@ -26,6 +34,7 @@ namespace Garapon.Game
         float discoveryTimer;
         readonly HashSet<string> stockedProducts = new HashSet<string>();
         readonly SystemRandomSource luckyRandom = new SystemRandomSource();
+        readonly SystemRandomSource saleRandom = new SystemRandomSource();
         Coroutine endingRoutine;
 
         public static GameSession Instance { get; private set; }
@@ -39,7 +48,9 @@ namespace Garapon.Game
         public Combo Combo { get; private set; }
         public LuckyTrash Lucky { get; private set; }
         public Lottery Lottery { get; private set; }
-        public List<string> Cart { get; } = new List<string>();
+        public BargainSale Sale { get; private set; }
+        public ShoppingCart Cart { get; } = new ShoppingCart();
+        public BuyMode BuyMode { get; private set; }
 
         public event Action<string> MessagePosted;
 
@@ -53,6 +64,7 @@ namespace Garapon.Game
             Progression = new Progression(Data, State, Upgrades);
             Combo = new Combo(Data, State);
             Lucky = new LuckyTrash(Data, State, Upgrades, Economy);
+            Sale = new BargainSale(Data, State, Upgrades, Progression);
             SetRandomSource(new SystemRandomSource());
 
             // Shelves stocked at load time are not news. Stamps are announced on the first check,
@@ -73,6 +85,11 @@ namespace Garapon.Game
             State.PlaySeconds += Time.unscaledDeltaTime;
             Automation.Tick(Time.deltaTime);
             Lucky.Tick(Time.deltaTime);
+            var sale = Sale.Tick(Time.deltaTime, saleRandom);
+            if (sale != null)
+            {
+                AnnounceSale(sale);
+            }
 
             discoveryTimer += Time.unscaledDeltaTime;
             if (discoveryTimer >= DiscoveryCheckInterval)
@@ -121,15 +138,48 @@ namespace Garapon.Game
             MessagePosted?.Invoke(message);
         }
 
-        public long CartTotal()
-        {
-            var total = 0L;
-            foreach (var productId in Cart)
-            {
-                total += Economy.GetPrice(Data.FindProduct(productId));
-            }
+        public long CartTotal() => Economy.Total(Cart);
 
-            return total;
+        public void CycleBuyMode()
+        {
+            BuyMode = BuyMode == BuyMode.Max ? BuyMode.One : BuyMode + 1;
+            Post($"まとめ買い: {BuyModeName}");
+        }
+
+        public string BuyModeName => BuyMode == BuyMode.One ? "1個ずつ" : BuyMode == BuyMode.Ten ? "10個ずつ" : "買えるだけ";
+
+        // How many of a grocery one press adds in the current buy mode, limited to what can be paid for.
+        public long BulkQuantity(string productId)
+        {
+            var affordable = Economy.MaxAffordable(Cart, productId);
+            switch (BuyMode)
+            {
+                case BuyMode.Ten: return Math.Min(10, Math.Max(1, affordable));
+                case BuyMode.Max: return Math.Max(1, affordable);
+                default: return 1;
+            }
+        }
+
+        // Announces upgrades that crossed a milestone between the given levels and now.
+        public void AnnounceMilestones(Dictionary<string, int> levelsBefore)
+        {
+            foreach (var upgrade in Data.Upgrades)
+            {
+                levelsBefore.TryGetValue(upgrade.Id, out var before);
+                var after = State.GetUpgradeLevel(upgrade.Id);
+                if (UpgradeSystem.MilestoneFactor(upgrade, after) > UpgradeSystem.MilestoneFactor(upgrade, before))
+                {
+                    Post($"{upgrade.DisplayName} Lv{after} 達成! 節目ボーナスで効果×{upgrade.MilestoneMultiplier}");
+                }
+            }
+        }
+
+        void AnnounceSale(ProductDef product)
+        {
+            var seconds = (int)Data.SaleSeconds;
+            Post(string.IsNullOrEmpty(product.UpgradeId)
+                ? $"タイムセール! {product.DisplayName} 抽選券{Data.SaleTicketMultiplier}倍 ({seconds}秒間)"
+                : $"タイムセール! {product.DisplayName} {Data.SaleDiscount * 100:0}%引き ({seconds}秒間)");
         }
 
         public void HandlePrize(DrawBatchResult result, long drawsBefore)

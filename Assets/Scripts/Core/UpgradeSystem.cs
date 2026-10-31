@@ -20,21 +20,82 @@ namespace Garapon.Core
             {
                 if (upgrade.Stat == stat)
                 {
-                    value += state.GetUpgradeLevel(upgrade.Id) * upgrade.ValuePerLevel;
+                    value += Effect(upgrade, state.GetUpgradeLevel(upgrade.Id));
                 }
             }
 
             return value;
         }
 
+        // The total effect of an upgrade at a level, including its milestone multipliers.
+        public static double Effect(UpgradeDef upgrade, int level) =>
+            level * upgrade.ValuePerLevel * MilestoneFactor(upgrade, level);
+
+        public static double MilestoneFactor(UpgradeDef upgrade, int level) =>
+            upgrade.MilestoneEvery > 0 ? Math.Pow(upgrade.MilestoneMultiplier, level / upgrade.MilestoneEvery) : 1;
+
+        // The next level that multiplies the upgrade's effect, or 0 when there is none left.
+        public int NextMilestone(UpgradeDef upgrade)
+        {
+            if (upgrade.MilestoneEvery <= 0)
+            {
+                return 0;
+            }
+
+            var next = (state.GetUpgradeLevel(upgrade.Id) / upgrade.MilestoneEvery + 1) * upgrade.MilestoneEvery;
+            return next <= upgrade.MaxLevel ? next : 0;
+        }
+
+        public bool ReachedMilestone
+        {
+            get
+            {
+                foreach (var upgrade in data.Upgrades)
+                {
+                    if (MilestoneFactor(upgrade, state.GetUpgradeLevel(upgrade.Id)) > 1)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+        }
+
+        // Levels bought across every upgrade that raises the trash price, which the garbage truck builds on.
+        public int TrashValueLevels
+        {
+            get
+            {
+                var levels = 0;
+                foreach (var upgrade in data.Upgrades)
+                {
+                    if (upgrade.Stat == UpgradeStat.TrashValue)
+                    {
+                        levels += state.GetUpgradeLevel(upgrade.Id);
+                    }
+                }
+
+                return levels;
+            }
+        }
+
+        // Every source of extra tickets: the point card and the name tag per stamp.
+        public double TicketMultiplier =>
+            (1 + GetValue(UpgradeStat.TicketRate)) *
+            (1 + state.Stamps.Count * GetValue(UpgradeStat.TicketPerStamp));
+
         // Balls drawn per crank. Each hopper level doubles it, which is what lets the
         // late game reach a million draws.
         public long DrawsPerCrank => 1L << (int)Math.Min(GetValue(UpgradeStat.DrawBatch), 40);
 
-        public double CrankSpeedMultiplier => 1 + GetValue(UpgradeStat.CrankSpeed);
+        // Grease and the souvenir perk both speed up the crank.
+        public double CrankSpeedMultiplier =>
+            (1 + GetValue(UpgradeStat.CrankSpeed)) * (1 + Prestige.PerkValue(data, state, PerkStat.CrankSpeed));
 
         // Pieces of trash the robot collects per second.
-        public double AutoCollectPerSecond => GetValue(UpgradeStat.AutoCollect);
+        public double AutoCollectPerSecond =>
+            GetValue(UpgradeStat.AutoCollect) * (1 + TrashValueLevels * GetValue(UpgradeStat.RobotPerTrashLevel));
 
         public bool HasAutoCrank => GetValue(UpgradeStat.AutoCrank) >= 1;
 

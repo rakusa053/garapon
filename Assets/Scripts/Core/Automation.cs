@@ -7,12 +7,14 @@ namespace Garapon.Core
         public readonly double Seconds;
         public readonly long TrashCollected;
         public readonly long MoneyEarned;
+        public readonly long TicketsBought;
 
-        public AutomationReport(double seconds, long trashCollected, long moneyEarned)
+        public AutomationReport(double seconds, long trashCollected, long moneyEarned, long ticketsBought = 0)
         {
             Seconds = seconds;
             TrashCollected = trashCollected;
             MoneyEarned = moneyEarned;
+            TicketsBought = ticketsBought;
         }
     }
 
@@ -52,6 +54,7 @@ namespace Garapon.Core
 
             var collected = Collect(seconds);
             var earned = 0L;
+            var tickets = 0L;
             if (upgrades.HasDelivery)
             {
                 deliveryTimer += seconds;
@@ -59,10 +62,11 @@ namespace Garapon.Core
                 {
                     deliveryTimer %= DeliveryInterval;
                     earned = economy.SellEverything();
+                    tickets = AutoShop(earned);
                 }
             }
 
-            return new AutomationReport(seconds, collected, earned);
+            return new AutomationReport(seconds, collected, earned, tickets);
         }
 
         // Runs the automation for time spent away, capped and at reduced efficiency
@@ -79,7 +83,15 @@ namespace Garapon.Core
             state.FrenzySecondsLeft = 0;
             var collected = Collect(capped * data.OfflineEfficiency);
             var earned = upgrades.HasDelivery ? economy.SellEverything() : 0;
-            return new AutomationReport(capped, collected, earned);
+            return new AutomationReport(capped, collected, earned, AutoShop(earned));
+        }
+
+        // With the online-shopping perk, part of every delivery sale goes straight to tickets.
+        long AutoShop(long earned)
+        {
+            return earned > 0 && Prestige.HasAutoShop(data, state)
+                ? economy.BuyTickets((long)(earned * data.AutoShopShare))
+                : 0;
         }
 
         long Collect(double seconds)

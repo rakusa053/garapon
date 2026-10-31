@@ -57,8 +57,7 @@ namespace Garapon.Core
             }
 
             var earned = (long)Math.Round(state.TrashValue * SaleMultiplier);
-            state.Money += earned;
-            state.TotalEarned += earned;
+            state.AddEarnings(earned);
             state.TrashValue = 0;
             return earned;
         }
@@ -72,8 +71,7 @@ namespace Garapon.Core
                 return 0;
             }
 
-            state.Money += earned;
-            state.TotalEarned += earned;
+            state.AddEarnings(earned);
             state.AddItem(itemId, -state.GetItem(itemId));
             return earned;
         }
@@ -93,38 +91,85 @@ namespace Garapon.Core
             return earned;
         }
 
+        public bool IsOnSale(ProductDef product) => state.SaleSecondsLeft > 0 && state.SaleProductId == product.Id;
+
+        // Upgrades on sale are discounted; groceries on sale keep their price but give extra tickets.
         public long GetPrice(ProductDef product)
         {
-            return string.IsNullOrEmpty(product.UpgradeId)
-                ? product.Price
-                : upgrades.GetCost(data.FindUpgrade(product.UpgradeId));
+            if (string.IsNullOrEmpty(product.UpgradeId))
+            {
+                return product.Price;
+            }
+
+            var cost = upgrades.GetCost(data.FindUpgrade(product.UpgradeId));
+            return IsOnSale(product) ? (long)Math.Round(cost * (1 - data.SaleDiscount)) : cost;
+        }
+
+        public long Total(ShoppingCart cart)
+        {
+            var total = 0L;
+            foreach (var line in cart.Lines)
+            {
+                total += GetPrice(data.FindProduct(line.ProductId)) * line.Quantity;
+            }
+
+            return total;
+        }
+
+        // How many more of a product the player could pay for, with cash and vouchers, on top of the cart.
+        public long MaxAffordable(ShoppingCart cart, string productId)
+        {
+            var price = GetPrice(data.FindProduct(productId));
+            if (price <= 0)
+            {
+                return 0;
+            }
+
+            return Math.Max(0, (state.Money + VoucherBalance() - Total(cart)) / price);
+        }
+
+        public long VoucherBalance()
+        {
+            var balance = 0L;
+            foreach (var item in data.Items)
+            {
+                balance += state.GetItem(item.Id) * item.VoucherValue;
+            }
+
+            return balance;
         }
 
         // Whether productId can join the cart: an upgrade may appear only once, must not be maxed,
         // and every upgrade in the cart together must not need more items than the player owns.
-        public bool CanAddToCart(IReadOnlyList<string> cart, string productId)
-        {
-            var products = new List<string>(cart) { productId };
-            return TryGetUpgrades(products, out _);
-        }
+        public bool CanAddToCart(ShoppingCart cart, string productId) => TryGetUpgrades(cart.With(productId), out _);
 
-        public CheckoutResult Checkout(IReadOnlyList<string> productIds)
+        public bool CanAddToCart(IReadOnlyList<string> cart, string productId) => CanAddToCart(ShoppingCart.Of(cart), productId);
+
+        public CheckoutResult Checkout(IReadOnlyList<string> productIds) => Checkout(ShoppingCart.Of(productIds));
+
+        public CheckoutResult Checkout(ShoppingCart cart)
         {
-            if (!TryGetUpgrades(productIds, out var upgradesInCart))
+            if (cart.IsEmpty || !TryGetUpgrades(cart, out var upgradesInCart))
             {
                 return default;
             }
 
-            var total = 0L;
-            foreach (var productId in productIds)
-            {
-                total += GetPrice(data.FindProduct(productId));
-            }
-
+            // Prices and sales are read before the upgrades level up and change them.
+            var total = Total(cart);
+            var ticketYen = TicketYen(cart);
             var voucherPaid = PayableByVouchers(total);
             if (total - voucherPaid > state.Money)
             {
                 return default;
+            }
+
+            foreach (var line in cart.Lines)
+            {
+                if (IsOnSale(data.FindProduct(line.ProductId)))
+                {
+                    state.SaleBuys++;
+                    break;
+                }
             }
 
             state.Money -= total - voucherPaid;
@@ -134,23 +179,50 @@ namespace Garapon.Core
                 upgrades.Apply(upgrade);
             }
 
-            return new CheckoutResult(true, total, voucherPaid, GrantTickets(total));
+            return new CheckoutResult(true, total, voucherPaid, GrantTickets(ticketYen));
         }
 
-        bool TryGetUpgrades(IReadOnlyList<string> productIds, out List<UpgradeDef> upgradesInCart)
+        // Spends money straight on tickets, as the online-shopping perk does. Returns the tickets granted.
+        public long BuyTickets(long yen)
+        {
+            yen = Math.Min(yen, state.Money);
+            if (yen <= 0)
+            {
+                return 0;
+            }
+
+            state.Money -= yen;
+            return GrantTickets(yen);
+        }
+
+        long TicketYen(ShoppingCart cart)
+        {
+            var yen = 0L;
+            foreach (var line in cart.Lines)
+            {
+                var product = data.FindProduct(line.ProductId);
+                var spent = GetPrice(product) * line.Quantity;
+                var grocerySale = string.IsNullOrEmpty(product.UpgradeId) && IsOnSale(product);
+                yen += grocerySale ? (long)Math.Round(spent * data.SaleTicketMultiplier) : spent;
+            }
+
+            return yen;
+        }
+
+        bool TryGetUpgrades(ShoppingCart cart, out List<UpgradeDef> upgradesInCart)
         {
             upgradesInCart = new List<UpgradeDef>();
             var itemCosts = new Dictionary<string, long>();
-            foreach (var productId in productIds)
+            foreach (var line in cart.Lines)
             {
-                var product = data.FindProduct(productId);
+                var product = data.FindProduct(line.ProductId);
                 if (string.IsNullOrEmpty(product.UpgradeId))
                 {
                     continue;
                 }
 
                 var upgrade = data.FindUpgrade(product.UpgradeId);
-                if (upgradesInCart.Contains(upgrade) || upgrades.IsMaxed(upgrade))
+                if (line.Quantity > 1 || upgradesInCart.Contains(upgrade) || upgrades.IsMaxed(upgrade))
                 {
                     return false;
                 }
@@ -200,10 +272,9 @@ namespace Garapon.Core
             }
         }
 
-        long GrantTickets(long total)
+        long GrantTickets(long yen)
         {
-            var rate = 1 + upgrades.GetValue(UpgradeStat.TicketRate);
-            var earned = state.SpendRemainder + (long)Math.Round(total * rate);
+            var earned = state.SpendRemainder + (long)Math.Round(yen * upgrades.TicketMultiplier);
             var tickets = earned / data.MoneyPerTicket;
             state.SpendRemainder = earned % data.MoneyPerTicket;
             state.Tickets += tickets;

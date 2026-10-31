@@ -42,7 +42,7 @@ namespace Garapon.Game
             }
 
             CreateLucky();
-            luckyTimer = Random.Range(LuckySpawnMin, LuckySpawnMax);
+            luckyTimer = NextLuckyDelay();
         }
 
         void Update()
@@ -103,6 +103,13 @@ namespace Garapon.Game
             }
         }
 
+        // The travel-charm perk makes lucky trash turn up more often.
+        float NextLuckyDelay()
+        {
+            var session = GameSession.Instance;
+            return Random.Range(LuckySpawnMin, LuckySpawnMax) / (float)Prestige.LuckyRate(session.Data, session.State);
+        }
+
         void CreateLucky()
         {
             var luckyObject = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -128,7 +135,7 @@ namespace Garapon.Game
         void HideLucky()
         {
             lucky.gameObject.SetActive(false);
-            luckyTimer = Random.Range(LuckySpawnMin, LuckySpawnMax);
+            luckyTimer = NextLuckyDelay();
         }
 
         Vector3 RandomPoint(float height)

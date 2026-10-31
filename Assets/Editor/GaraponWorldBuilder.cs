@@ -176,6 +176,7 @@ namespace Garapon.Editor
             WorldLabel("換金所", recycle.transform.position + Vector3.up * 1.4f, font);
 
             BuildSupermarket(data.Data, font, palette);
+            BuildSouvenirExchange(data.Data, font, palette);
             BuildGaraponBooth(font, palette);
             BuildHud(player, font);
 
@@ -209,6 +210,25 @@ namespace Garapon.Editor
             var register = Box("CashRegister", root.transform, new Vector3(6f, 0.6f, -9f), new Vector3(3f, 1.2f, 1.2f), palette.Station);
             register.AddComponent<CashRegister>();
             WorldLabel("レジ", register.transform.position + Vector3.up * 1.2f, font);
+        }
+
+        // A row of counters south of the trash field where souvenirs are traded for permanent perks.
+        static void BuildSouvenirExchange(GameData data, TMP_FontAsset font, Palette palette)
+        {
+            var root = new GameObject("SouvenirExchange");
+            root.transform.position = new Vector3(0f, 0f, -19f);
+
+            const float spacing = 4f;
+            var start = -(data.Perks.Count - 1) * spacing / 2f;
+            for (var i = 0; i < data.Perks.Count; i++)
+            {
+                var counter = Box($"Perk {data.Perks[i].Id}", root.transform, new Vector3(start + i * spacing, 0.6f, 0f), new Vector3(2.4f, 1.2f, 1.2f), palette.Wood);
+                var label = WorldLabel(data.Perks[i].DisplayName, counter.transform.position + Vector3.up * 1.2f, font);
+                var perk = counter.AddComponent<PerkCounter>();
+                Wire(perk, ("perkId", data.Perks[i].Id), ("label", label));
+            }
+
+            WorldLabel("おみやげ交換所", root.transform.position + new Vector3(0f, 3f, 2f), font);
         }
 
         static void BuildGaraponBooth(TMP_FontAsset font, Palette palette)

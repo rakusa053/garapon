@@ -7,6 +7,7 @@ dotnet run --project Simulation -c Release                    # 今のバラン�
 dotnet run --project Simulation -c Release -- --no-automation # 自動化系アップグレードを無効にした比較
 dotnet run --project Simulation -c Release -- --no-fun        # ラッキーごみ・コンボ・スタンプ・入荷をすべて外した比較
 dotnet run --project Simulation -c Release -- --no-lucky      # 1つずつ外す: --no-combo / --no-lucky / --no-stamps / --no-stocking
+dotnet run --project Simulation -c Release -- --no-perks      # 買い物・強化・周回: --no-perks / --no-souvenirs / --no-milestones / --no-synergy / --no-sale / --no-bulk
 dotnet run --project Simulation -c Release -- --debug         # 2周目の各プレイを1行ずつ表示
 dotnet run --project Simulation -- --write-asset              # GameData.CreateDefault() から Assets/Data/GameData.asset を書き直す
 ```

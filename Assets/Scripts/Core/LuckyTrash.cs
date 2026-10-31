@@ -61,8 +61,7 @@ namespace Garapon.Core
                 // Like Cookie Clicker's "Lucky": a share of the bank, capped by what the robot makes in 15 minutes.
                 var robotIncome = upgrades.AutoCollectPerSecond * data.AverageTrashValue() * economy.SaleMultiplier * WindfallRobotSeconds;
                 var amount = Math.Max(MinimumWindfall, (long)Math.Min(state.Money * WindfallShareOfMoney, robotIncome));
-                state.Money += amount;
-                state.TotalEarned += amount;
+                state.AddEarnings(amount);
                 return new LuckyReward(LuckyKind.Windfall, amount);
             }
 

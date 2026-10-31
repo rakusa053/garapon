@@ -43,7 +43,7 @@ namespace Garapon.Core
         {
             get
             {
-                var guarantee = resolver.Data.GuaranteedGoldDraws;
+                var guarantee = Prestige.GuaranteedGoldDraws(resolver.Data, state);
                 return guarantee > 0 ? System.Math.Max(0, guarantee - state.TotalDraws) : -1;
             }
         }

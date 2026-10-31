@@ -79,8 +79,17 @@ namespace Garapon.Game
                     .Append(session.Combo.Multiplier.ToString("0.00")).Append("</color>\n");
             }
 
+            var sale = session.Sale.Current;
+            if (sale != null)
+            {
+                builder.Append("<color=#FF6060>タイムセール ").Append(sale.DisplayName)
+                    .Append(string.IsNullOrEmpty(sale.UpgradeId) ? " 抽選券" + session.Data.SaleTicketMultiplier + "倍" : $" {session.Data.SaleDiscount * 100:0}%引き")
+                    .Append(" 残り").Append(Mathf.CeilToInt((float)session.Sale.SecondsLeft)).Append("秒</color>\n");
+            }
+
             builder.Append("抽選券 ").Append(NumberFormat.Japanese(state.Tickets)).Append("枚\n");
-            builder.Append("カゴ ").Append(session.Cart.Count).Append("点 ").Append(NumberFormat.Yen(session.CartTotal())).Append('\n');
+            builder.Append("カゴ ").Append(NumberFormat.Japanese(session.Cart.Count)).Append("点 ").Append(NumberFormat.Yen(session.CartTotal()))
+                .Append("  [Q] ").Append(session.BuyModeName).Append('\n');
             builder.Append("抽選回数 ").Append(NumberFormat.Japanese(state.TotalDraws)).Append("回\n");
             var untilGuarantee = session.Lottery.DrawsUntilGuarantee;
             if (untilGuarantee > 0)
@@ -95,6 +104,17 @@ namespace Garapon.Game
         {
             var state = session.State;
             builder.Clear();
+            if (state.SouvenirsEarned > 0 || state.Clears > 0)
+            {
+                builder.Append("おみやげ ").Append(NumberFormat.Japanese(state.Souvenirs)).Append("個");
+                var pending = Prestige.Pending(session.Data, state);
+                builder.Append("(この旅で +").Append(NumberFormat.Japanese(pending)).Append(")\n");
+            }
+            else
+            {
+                builder.Append("温泉のおみやげ 見込み ").Append(NumberFormat.Japanese(Prestige.Pending(session.Data, state))).Append("個\n");
+            }
+
             builder.Append("スタンプ ").Append(state.Stamps.Count).Append('/').Append(StampCard.All.Count)
                 .Append("(買取 +").Append((state.Stamps.Count * session.Data.StampBonus * 100).ToString("0")).Append("%)\n");
             foreach (var item in session.Data.Items)

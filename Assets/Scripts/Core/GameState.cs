@@ -30,19 +30,26 @@ namespace Garapon.Core
         public long LuckyCollected;
         public long BestCombo;
         public double FrenzySecondsLeft;
+        public string SaleProductId;
+        public double SaleSecondsLeft;
+        public long SaleBuys;
 
         // Carried over between runs.
         public int Clears;
         public double BestClearSeconds;
         public List<string> Stamps = new List<string>();
+        public long LifetimeEarned;
+        public long SouvenirsEarned;
+        public long Souvenirs;
+        public List<CountEntry> Perks = new List<CountEntry>();
         public List<CountEntry> Items = new List<CountEntry>();
         public List<CountEntry> UpgradeLevels = new List<CountEntry>();
         public List<CountEntry> DrawCounts = new List<CountEntry>();
 
         public bool HasStamp(string id) => Stamps.Contains(id);
 
-        // The state for another run after clearing: progress resets, but clears, the best time
-        // and the stamp card carry over.
+        // The state for another run after clearing: progress resets, but clears, the best time,
+        // the stamp card, souvenirs and perks carry over. Prestige.NextRun also grants new souvenirs.
         public GameState NextRun()
         {
             var best = Cleared && (BestClearSeconds <= 0 || PlaySeconds < BestClearSeconds) ? PlaySeconds : BestClearSeconds;
@@ -50,14 +57,28 @@ namespace Garapon.Core
             {
                 Clears = Clears + (Cleared ? 1 : 0),
                 BestClearSeconds = best,
-                Stamps = new List<string>(Stamps)
+                Stamps = new List<string>(Stamps),
+                LifetimeEarned = LifetimeEarned,
+                SouvenirsEarned = SouvenirsEarned,
+                Souvenirs = Souvenirs,
+                Perks = Perks.ConvertAll(perk => new CountEntry { Id = perk.Id, Count = perk.Count })
             };
+        }
+
+        // Money earned by selling, which also counts towards souvenirs.
+        public void AddEarnings(long amount)
+        {
+            Money += amount;
+            TotalEarned += amount;
+            LifetimeEarned += amount;
         }
 
         public long GetItem(string id) => Get(Items, id);
         public void AddItem(string id, long amount) => Add(Items, id, amount);
         public int GetUpgradeLevel(string id) => (int)Get(UpgradeLevels, id);
         public void AddUpgradeLevel(string id) => Add(UpgradeLevels, id, 1);
+        public int GetPerkLevel(string id) => (int)Get(Perks, id);
+        public void AddPerkLevel(string id) => Add(Perks, id, 1);
         public long GetDrawCount(PrizeColor color) => Get(DrawCounts, color.ToString());
         public void AddDrawCount(PrizeColor color) => Add(DrawCounts, color.ToString(), 1);
 

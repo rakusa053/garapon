@@ -82,8 +82,11 @@ namespace Garapon.Core
         public bool IsRevealed(UpgradeDef upgrade)
         {
             return state.GetUpgradeLevel(upgrade.Id) > 0 ||
-                (state.TotalEarned * 2 >= upgrade.BaseCost && HasSeenItem(upgrade.ItemCostId));
+                (state.TotalEarned * 2 >= upgrade.BaseCost && HasSeenItem(upgrade.ItemCostId) && MeetsRequirement(upgrade));
         }
+
+        bool MeetsRequirement(UpgradeDef upgrade) =>
+            string.IsNullOrEmpty(upgrade.RequiresId) || state.GetUpgradeLevel(upgrade.RequiresId) >= upgrade.RequiresLevel;
 
         // The next upgrade to be stocked and what it is waiting for, as a teaser.
         public UpgradeDef NextReveal()
@@ -103,6 +106,11 @@ namespace Garapon.Core
         public string RevealHint(UpgradeDef upgrade)
         {
             var hints = new List<string>();
+            if (!MeetsRequirement(upgrade))
+            {
+                hints.Add($"{data.FindUpgrade(upgrade.RequiresId).DisplayName}をLv{upgrade.RequiresLevel}にする");
+            }
+
             if (state.TotalEarned * 2 < upgrade.BaseCost)
             {
                 hints.Add($"累計{NumberFormat.Yen((upgrade.BaseCost + 1) / 2)}かせぐ");

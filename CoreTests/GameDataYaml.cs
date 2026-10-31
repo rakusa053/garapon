@@ -57,6 +57,10 @@ namespace Garapon.Tools
                 add("CostGrowth", Number(upgrade.CostGrowth));
                 add("ItemCostId", Text(upgrade.ItemCostId));
                 add("ItemCostAmount", Int(upgrade.ItemCostAmount));
+                add("MilestoneEvery", Int(upgrade.MilestoneEvery));
+                add("MilestoneMultiplier", Number(upgrade.MilestoneMultiplier));
+                add("RequiresId", Text(upgrade.RequiresId));
+                add("RequiresLevel", Int(upgrade.RequiresLevel));
             });
             List("Products", data.Products, yaml, (product, add) =>
             {
@@ -64,6 +68,16 @@ namespace Garapon.Tools
                 add("DisplayName", Text(product.DisplayName));
                 add("Price", Int(product.Price));
                 add("UpgradeId", Text(product.UpgradeId));
+            });
+            List("Perks", data.Perks, yaml, (perk, add) =>
+            {
+                add("Id", Text(perk.Id));
+                add("DisplayName", Text(perk.DisplayName));
+                add("Stat", Int((int)perk.Stat));
+                add("ValuePerLevel", Number(perk.ValuePerLevel));
+                add("MaxLevel", Int(perk.MaxLevel));
+                add("BaseCost", Int(perk.BaseCost));
+                add("CostGrowth", Number(perk.CostGrowth));
             });
             yaml.Append("    MoneyPerTicket: ").Append(Int(data.MoneyPerTicket)).Append('\n');
             yaml.Append("    GuaranteedGoldDraws: ").Append(Int(data.GuaranteedGoldDraws)).Append('\n');
@@ -76,6 +90,13 @@ namespace Garapon.Tools
             yaml.Append("    ComboMaxSteps: ").Append(Int(data.ComboMaxSteps)).Append('\n');
             yaml.Append("    StampBonus: ").Append(Number(data.StampBonus)).Append('\n');
             yaml.Append("    ClearBonus: ").Append(Number(data.ClearBonus)).Append('\n');
+            yaml.Append("    SaleIntervalMin: ").Append(Number(data.SaleIntervalMin)).Append('\n');
+            yaml.Append("    SaleIntervalMax: ").Append(Number(data.SaleIntervalMax)).Append('\n');
+            yaml.Append("    SaleSeconds: ").Append(Number(data.SaleSeconds)).Append('\n');
+            yaml.Append("    SaleDiscount: ").Append(Number(data.SaleDiscount)).Append('\n');
+            yaml.Append("    SaleTicketMultiplier: ").Append(Number(data.SaleTicketMultiplier)).Append('\n');
+            yaml.Append("    SouvenirUnit: ").Append(Number(data.SouvenirUnit)).Append('\n');
+            yaml.Append("    AutoShopShare: ").Append(Number(data.AutoShopShare)).Append('\n');
             return yaml.ToString();
         }
 
