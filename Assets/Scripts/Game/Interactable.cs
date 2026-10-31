@@ -10,6 +10,9 @@ namespace Garapon.Game
         public abstract string Prompt { get; }
         public abstract void Interact();
 
+        // Unavailable interactables stay in the world but cannot be targeted.
+        public virtual bool IsAvailable => true;
+
         protected virtual void OnEnable()
         {
             Active.Add(this);
@@ -26,6 +29,11 @@ namespace Garapon.Game
             var nearestDistance = reach * reach;
             foreach (var candidate in Active)
             {
+                if (!candidate.IsAvailable)
+                {
+                    continue;
+                }
+
                 var offset = candidate.transform.position - position;
                 offset.y = 0;
                 if (offset.sqrMagnitude < nearestDistance)

@@ -25,9 +25,18 @@ namespace Garapon.Game
             }
         }
 
+        // Shelves are stocked as the game goes on; until then they tease what is coming.
+        public override bool IsAvailable => GameSession.Instance.Progression.IsRevealed(Product);
+
         void Update()
         {
             var session = GameSession.Instance;
+            if (!IsAvailable)
+            {
+                label.text = "？？？\n入荷待ち";
+                return;
+            }
+
             var upgrade = Upgrade;
             label.text = upgrade != null && session.Upgrades.IsMaxed(upgrade)
                 ? $"{Product.DisplayName}\n売り切れ"

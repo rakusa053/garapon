@@ -112,7 +112,7 @@ MonoBehaviour:
       ValuePerLevel: 0.1
       MaxLevel: 30
       BaseCost: 1000
-      CostGrowth: 1.3
+      CostGrowth: 1.4
       ItemCostId: 
       ItemCostAmount: 0
     - Id: delivery
@@ -139,7 +139,7 @@ MonoBehaviour:
       ValuePerLevel: 1
       MaxLevel: 10
       BaseCost: 3000
-      CostGrowth: 2.2
+      CostGrowth: 2.5
       ItemCostId: tool_parts
       ItemCostAmount: 3
     - Id: motor
@@ -220,3 +220,10 @@ MonoBehaviour:
     GuaranteedGoldDraws: 1000000
     OfflineHoursCap: 8
     OfflineEfficiency: 0.5
+    FrenzyMultiplier: 7
+    FrenzySeconds: 30
+    ComboWindowSeconds: 2.5
+    ComboStep: 0.01
+    ComboMaxSteps: 50
+    StampBonus: 0.03
+    ClearBonus: 1

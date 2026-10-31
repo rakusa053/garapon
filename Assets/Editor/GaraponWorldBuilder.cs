@@ -348,7 +348,7 @@ namespace Garapon.Editor
             var result = ScreenText("Result", canvas, font, 44, TextAlignmentOptions.Center,
                 new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1400f, 800f));
             var ending = canvas.gameObject.AddComponent<EndingController>();
-            Wire(ending, ("resultText", result));
+            Wire(ending, ("resultText", result), ("dataAsset", AssetDatabase.LoadAssetAtPath<GameDataAsset>(DataPath)));
 
             EditorSceneManager.SaveScene(scene, EndingPath);
         }

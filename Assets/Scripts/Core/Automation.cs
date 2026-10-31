@@ -75,6 +75,8 @@ namespace Garapon.Core
                 return default;
             }
 
+            // A frenzy only lasts while someone is around to enjoy it.
+            state.FrenzySecondsLeft = 0;
             var collected = Collect(capped * data.OfflineEfficiency);
             var earned = upgrades.HasDelivery ? economy.SellEverything() : 0;
             return new AutomationReport(capped, collected, earned);
@@ -82,7 +84,7 @@ namespace Garapon.Core
 
         long Collect(double seconds)
         {
-            collectCarry += upgrades.AutoCollectPerSecond * data.AverageTrashValue() * seconds;
+            collectCarry += upgrades.AutoCollectPerSecond * data.AverageTrashValue() * economy.FrenzyMultiplier * seconds;
             // The tolerance stops many tiny frame ticks from summing to 9.999... and losing a yen.
             var whole = (long)Math.Floor(collectCarry + 1e-9);
             collectCarry -= whole;

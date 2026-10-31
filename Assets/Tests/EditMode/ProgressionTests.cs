@@ -199,6 +199,7 @@ namespace Garapon.Tests
         public void NextGoalIsCheapestUpgradeWithShortfall()
         {
             state.Money = 100;
+            state.TotalEarned = 100;
 
             var goal = progression.NextGoal();
 
@@ -212,6 +213,8 @@ namespace Garapon.Tests
         public void NextGoalReportsMissingItems()
         {
             state.Money = 1000;
+            state.TotalEarned = 1000;
+            state.AddDrawCount(PrizeColor.Blue);
             SetLevel("shoes", 10);
 
             var goal = progression.NextGoal();

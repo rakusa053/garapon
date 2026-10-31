@@ -19,28 +19,54 @@ namespace Garapon.Simulation
         const double CrankSeconds = 3;
         const double CollectSecondsPerLoop = 45;
         const double TicketBudgetShare = 0.5;
+        const double ManualCrankSecondsPerLoop = 120;
+        const double LuckySpawnMin = 60;
+        const double LuckySpawnMax = 180;
+        const double LuckyCatchChance = 0.6;
 
         public readonly GameData Data;
-        public readonly GameState State = new GameState();
+        public readonly GameState State;
         public readonly UpgradeSystem Upgrades;
         public readonly Economy Economy;
         public readonly Automation Automation;
         public readonly Lottery Lottery;
+        public readonly Progression Progression;
+        readonly Combo combo;
+        readonly LuckyTrash lucky;
+        readonly Random random;
+        readonly SystemRandomSource luckyRandom;
+        readonly TrashDef averageTrash;
         readonly bool legacy;
+        readonly bool noFun;
+        double nextLucky;
+
+        // Switches for measuring each system on its own.
+        public static bool NoCombo, NoLucky, NoStamps, NoStocking;
 
         public double Time;
         public readonly Dictionary<string, double> FirstPurchase = new Dictionary<string, double>();
         public readonly SortedDictionary<long, double> DrawMilestones = new SortedDictionary<long, double>();
 
-        public PlayerModel(GameData data, int seed, bool legacy)
+        public PlayerModel(GameData data, GameState state, int seed, bool legacy, bool noFun)
         {
             Data = data;
+            State = state;
             this.legacy = legacy;
+            this.noFun = noFun;
             Upgrades = new UpgradeSystem(data, State);
             Economy = new Economy(data, State, Upgrades);
             Automation = new Automation(data, State, Upgrades, Economy);
             Lottery = new Lottery(State, new DrawResolver(data, new SystemRandomSource(seed)));
+            Progression = new Progression(data, State, Upgrades);
+            combo = new Combo(data, State);
+            lucky = new LuckyTrash(data, State, Upgrades, Economy);
+            random = new Random(seed * 7919);
+            luckyRandom = new SystemRandomSource(seed * 104729);
+            averageTrash = new TrashDef { Id = "average", Value = data.AverageTrashValue() };
+            nextLucky = NextLuckyDelay();
         }
+
+        double NextLuckyDelay() => LuckySpawnMin + random.NextDouble() * (LuckySpawnMax - LuckySpawnMin);
 
         // In legacy mode the five automation upgrades can be bought but do nothing, as before.
         long DrawsPerCrank => legacy ? 1 : Upgrades.DrawsPerCrank;
@@ -60,27 +86,63 @@ namespace Garapon.Simulation
             var speed = BaseSpeed * (1 + Upgrades.GetValue(UpgradeStat.MoveSpeed));
             var radius = BasePickupRadius + Upgrades.GetValue(UpgradeStat.PickupRadius);
             var piecesPerSecond = 2 * radius * speed * TrashDensity * SweepEfficiency;
-            var multiplier = 1 + Upgrades.GetValue(UpgradeStat.TrashValue);
 
-            var loopSeconds = CollectSecondsPerLoop + LoopWalkMeters / speed + LoopInteractSeconds;
-            State.TrashValue += (long)(piecesPerSecond * CollectSecondsPerLoop * Data.AverageTrashValue());
-            if (!legacy)
+            // Collect piece by piece so combos, frenzies and lucky trash play out over time.
+            var step = 1 / piecesPerSecond;
+            for (var t = 0.0; t < CollectSecondsPerLoop; t += step)
             {
-                Automation.Tick(loopSeconds);
+                var multiplier = noFun || NoCombo ? 1 : combo.Register(Time + t);
+                Economy.CollectTrash(averageTrash, multiplier);
+                PassTime(step, true);
             }
 
+            var walkSeconds = LoopWalkMeters / speed + LoopInteractSeconds;
+            PassTime(walkSeconds, false);
             if (AutoCrank)
             {
-                Crank(loopSeconds);
+                Crank(CollectSecondsPerLoop + walkSeconds);
             }
 
-            Advance(loopSeconds);
+            Advance(CollectSecondsPerLoop + walkSeconds);
             Economy.SellEverything();
             Shop();
 
             if (!AutoCrank)
             {
-                Advance(Crank(double.MaxValue));
+                // A player cranks for a couple of minutes and then goes back to shopping,
+                // rather than standing at the machine until thousands of tickets are gone.
+                var seconds = Crank(ManualCrankSecondsPerLoop);
+                PassTime(seconds, false);
+                Advance(seconds);
+            }
+
+            if (!noFun && !NoStamps)
+            {
+                StampCard.Update(State, Upgrades);
+            }
+        }
+
+        void PassTime(double seconds, bool inField)
+        {
+            if (!legacy)
+            {
+                Automation.Tick(seconds);
+            }
+
+            if (noFun || NoLucky)
+            {
+                return;
+            }
+
+            lucky.Tick(seconds);
+            nextLucky -= seconds;
+            if (nextLucky <= 0)
+            {
+                nextLucky = NextLuckyDelay();
+                if (inField && random.NextDouble() < LuckyCatchChance)
+                {
+                    lucky.Collect(luckyRandom);
+                }
             }
         }
 
@@ -113,7 +175,7 @@ namespace Garapon.Simulation
             while (true)
             {
                 var candidates = Data.Upgrades
-                    .Where(upgrade => !Upgrades.IsMaxed(upgrade))
+                    .Where(upgrade => !Upgrades.IsMaxed(upgrade) && (noFun || NoStocking || Progression.IsRevealed(upgrade)))
                     .Select(upgrade => Data.FindProduct("upgrade_" + upgrade.Id))
                     .Where(product => Economy.CanAddToCart(new string[0], product.Id))
                     .OrderBy(product => Economy.GetPrice(product))
@@ -142,7 +204,7 @@ namespace Garapon.Simulation
             // Spend part of what is left on groceries for tickets, biggest items first.
             var budget = (long)(State.Money * TicketBudgetShare) + VoucherValue();
             var groceries = Data.Products
-                .Where(product => string.IsNullOrEmpty(product.UpgradeId))
+                .Where(product => string.IsNullOrEmpty(product.UpgradeId) && (noFun || NoStocking || Progression.IsRevealed(product)))
                 .OrderByDescending(product => product.Price)
                 .ToList();
             var cart = new List<string>();
@@ -208,15 +270,31 @@ namespace Garapon.Simulation
                 data.Products.RemoveAll(product => string.IsNullOrEmpty(product.UpgradeId) && product.Price > 250);
             }
 
+            var noFun = legacy || args.Contains("--no-fun");
+            PlayerModel.NoCombo = args.Contains("--no-combo");
+            PlayerModel.NoLucky = args.Contains("--no-lucky");
+            PlayerModel.NoStamps = args.Contains("--no-stamps");
+            PlayerModel.NoStocking = args.Contains("--no-stocking");
             var models = new List<PlayerModel>();
+            var secondRuns = new List<PlayerModel>();
             for (var seed = 1; seed <= runs; seed++)
             {
-                var model = new PlayerModel(data, seed, legacy);
+                var model = new PlayerModel(data, new GameState(), seed, legacy, noFun);
                 model.Run(maxHours * 3600.0);
                 models.Add(model);
+
+                if (model.State.Cleared && !noFun)
+                {
+                    model.State.PlaySeconds = model.Time;
+                    var second = new PlayerModel(data, model.State.NextRun(), seed + 1000, legacy, noFun);
+                    second.Run(maxHours * 3600.0);
+                    secondRuns.Add(second);
+                    if (args.Contains("--debug")) Console.WriteLine($"seed {seed}: first {Clock(model.Time)} second {Clock(second.Time)} draws {second.State.TotalDraws:N0} buys " + string.Join(" ", second.FirstPurchase.Select(p => p.Key + "@" + Clock(p.Value))));
+                }
             }
 
-            Console.WriteLine(legacy ? "== Automation upgrades disabled (as before this change) ==" : "== Current balance ==");
+            Console.WriteLine(legacy ? "== Automation upgrades disabled (as before this change) =="
+                : noFun ? "== Without lucky trash, combos, stamps and stocking ==" : "== Current balance ==");
             Console.WriteLine($"{runs} runs, capped at {maxHours}h of play\n");
 
             Console.WriteLine("First purchase of each upgrade (median):");
@@ -239,6 +317,19 @@ namespace Garapon.Simulation
             {
                 cleared.Sort();
                 Console.WriteLine($"  fastest {Clock(cleared.First())}, median {Clock(Median(cleared))}, slowest {Clock(cleared.Last())}");
+            }
+
+            if (!noFun)
+            {
+                Console.WriteLine($"\nStamps at first clear (median): {Median(models.Select(m => (double)m.State.Stamps.Count).ToList())}/{StampCard.All.Count}");
+                Console.WriteLine($"Lucky trash caught (median): {Median(models.Select(m => (double)m.State.LuckyCollected).ToList())}");
+                Console.WriteLine($"Best combo (median): {Median(models.Select(m => (double)m.State.BestCombo).ToList())}");
+                var secondTimes = secondRuns.Where(m => m.State.Cleared).Select(m => m.Time).ToList();
+                if (secondTimes.Count > 0)
+                {
+                    secondTimes.Sort();
+                    Console.WriteLine($"Second run clear: fastest {Clock(secondTimes.First())}, median {Clock(Median(secondTimes))}, slowest {Clock(secondTimes.Last())}");
+                }
             }
 
             var stuck = models.Where(m => !m.State.Cleared).ToList();

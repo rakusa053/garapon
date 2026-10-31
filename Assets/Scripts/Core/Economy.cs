@@ -32,9 +32,21 @@ namespace Garapon.Core
             this.upgrades = upgrades;
         }
 
-        public void CollectTrash(TrashDef trash)
+        // Lucky trash can start a frenzy that multiplies every piece collected for a while.
+        public double FrenzyMultiplier => state.FrenzySecondsLeft > 0 ? data.FrenzyMultiplier : 1;
+
+        // Everything that multiplies trash at the recycle station: bags, stamps and earlier clears.
+        public double SaleMultiplier =>
+            (1 + upgrades.GetValue(UpgradeStat.TrashValue)) *
+            (1 + state.Stamps.Count * data.StampBonus) *
+            (1 + state.Clears * data.ClearBonus);
+
+        // Returns the value added to the trash bag.
+        public long CollectTrash(TrashDef trash, double comboMultiplier = 1)
         {
-            state.TrashValue += trash.Value;
+            var value = (long)Math.Round(trash.Value * comboMultiplier * FrenzyMultiplier);
+            state.TrashValue += value;
+            return value;
         }
 
         public long SellTrash()
@@ -44,9 +56,9 @@ namespace Garapon.Core
                 return 0;
             }
 
-            var multiplier = 1 + upgrades.GetValue(UpgradeStat.TrashValue);
-            var earned = (long)Math.Round(state.TrashValue * multiplier);
+            var earned = (long)Math.Round(state.TrashValue * SaleMultiplier);
             state.Money += earned;
+            state.TotalEarned += earned;
             state.TrashValue = 0;
             return earned;
         }
@@ -61,6 +73,7 @@ namespace Garapon.Core
             }
 
             state.Money += earned;
+            state.TotalEarned += earned;
             state.AddItem(itemId, -state.GetItem(itemId));
             return earned;
         }

@@ -13,6 +13,7 @@ namespace Garapon.Game
         const float AutosaveInterval = 30f;
         const float EndingDelay = 4f;
         const string EndingScene = "Ending";
+        const float DiscoveryCheckInterval = 0.5f;
 
         static readonly PrizeColor[] RareFirst =
         {
@@ -22,6 +23,9 @@ namespace Garapon.Game
         [SerializeField] GameDataAsset dataAsset;
 
         float autosaveTimer;
+        float discoveryTimer;
+        readonly HashSet<string> stockedProducts = new HashSet<string>();
+        readonly SystemRandomSource luckyRandom = new SystemRandomSource();
         Coroutine endingRoutine;
 
         public static GameSession Instance { get; private set; }
@@ -32,6 +36,8 @@ namespace Garapon.Game
         public Economy Economy { get; private set; }
         public Automation Automation { get; private set; }
         public Progression Progression { get; private set; }
+        public Combo Combo { get; private set; }
+        public LuckyTrash Lucky { get; private set; }
         public Lottery Lottery { get; private set; }
         public List<string> Cart { get; } = new List<string>();
 
@@ -45,7 +51,13 @@ namespace Garapon.Game
             Economy = new Economy(Data, State, Upgrades);
             Automation = new Automation(Data, State, Upgrades, Economy);
             Progression = new Progression(Data, State, Upgrades);
+            Combo = new Combo(Data, State);
+            Lucky = new LuckyTrash(Data, State, Upgrades, Economy);
             SetRandomSource(new SystemRandomSource());
+
+            // Shelves stocked at load time are not news. Stamps are announced on the first check,
+            // so a new run greets the player with the stamps it has just earned.
+            Progression.NewlyRevealed(stockedProducts);
 
             if (State.Cleared)
             {
@@ -60,6 +72,14 @@ namespace Garapon.Game
         {
             State.PlaySeconds += Time.unscaledDeltaTime;
             Automation.Tick(Time.deltaTime);
+            Lucky.Tick(Time.deltaTime);
+
+            discoveryTimer += Time.unscaledDeltaTime;
+            if (discoveryTimer >= DiscoveryCheckInterval)
+            {
+                discoveryTimer = 0;
+                AnnounceDiscoveries();
+            }
 
             autosaveTimer += Time.unscaledDeltaTime;
             if (autosaveTimer >= AutosaveInterval)
@@ -147,6 +167,36 @@ namespace Garapon.Game
             }
 
             Post(message.ToString());
+        }
+
+        public void CollectLucky()
+        {
+            var reward = Lucky.Collect(luckyRandom);
+            switch (reward.Kind)
+            {
+                case LuckyKind.Frenzy:
+                    Post($"ラッキーごみ! 大漁タイム: {reward.Amount}秒間 ごみの価値×{Data.FrenzyMultiplier}");
+                    break;
+                case LuckyKind.Windfall:
+                    Post($"ラッキーごみ! 臨時収入 {NumberFormat.Yen(reward.Amount)}");
+                    break;
+                default:
+                    Post($"ラッキーごみ! 福引券を{NumberFormat.Japanese(reward.Amount)}枚拾った");
+                    break;
+            }
+        }
+
+        void AnnounceDiscoveries()
+        {
+            foreach (var product in Progression.NewlyRevealed(stockedProducts))
+            {
+                Post($"スーパーに新商品入荷: {product.DisplayName}");
+            }
+
+            foreach (var stamp in StampCard.Update(State, Upgrades))
+            {
+                Post($"スタンプ獲得「{stamp.Name}」 買取額 +{Data.StampBonus * 100:0}% ({State.Stamps.Count}/{StampCard.All.Count})");
+            }
         }
 
         void ApplyOfflineProgress()

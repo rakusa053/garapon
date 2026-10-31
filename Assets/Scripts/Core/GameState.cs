@@ -24,9 +24,35 @@ namespace Garapon.Core
         public double PlaySeconds;
         public bool Cleared;
         public long LastSavedUnixSeconds;
+
+        // Lifetime money from selling, which drives which shelves have been stocked.
+        public long TotalEarned;
+        public long LuckyCollected;
+        public long BestCombo;
+        public double FrenzySecondsLeft;
+
+        // Carried over between runs.
+        public int Clears;
+        public double BestClearSeconds;
+        public List<string> Stamps = new List<string>();
         public List<CountEntry> Items = new List<CountEntry>();
         public List<CountEntry> UpgradeLevels = new List<CountEntry>();
         public List<CountEntry> DrawCounts = new List<CountEntry>();
+
+        public bool HasStamp(string id) => Stamps.Contains(id);
+
+        // The state for another run after clearing: progress resets, but clears, the best time
+        // and the stamp card carry over.
+        public GameState NextRun()
+        {
+            var best = Cleared && (BestClearSeconds <= 0 || PlaySeconds < BestClearSeconds) ? PlaySeconds : BestClearSeconds;
+            return new GameState
+            {
+                Clears = Clears + (Cleared ? 1 : 0),
+                BestClearSeconds = best,
+                Stamps = new List<string>(Stamps)
+            };
+        }
 
         public long GetItem(string id) => Get(Items, id);
         public void AddItem(string id, long amount) => Add(Items, id, amount);

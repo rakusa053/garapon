@@ -28,15 +28,13 @@ namespace Garapon.Core
             this.upgrades = upgrades;
         }
 
-        // The cheapest upgrade that is not maxed yet, with how far the player is from buying it.
-        // Upgrades that need an item the player has never seen still count, so the goal also
-        // hints at which prize colour matters next.
+        // The cheapest stocked upgrade that is not maxed yet, with how far the player is from buying it.
         public Goal NextGoal()
         {
             Goal best = null;
             foreach (var upgrade in data.Upgrades)
             {
-                if (upgrades.IsMaxed(upgrade))
+                if (upgrades.IsMaxed(upgrade) || !IsRevealed(upgrade))
                 {
                     continue;
                 }
@@ -63,6 +61,107 @@ namespace Garapon.Core
             }
 
             return best;
+        }
+
+        // Groceries up to this price are on the shelves from the start.
+        public const long StarterPrice = 300;
+
+        // Shelves are stocked gradually so the supermarket keeps having something new: a product
+        // appears once the player has earned half its price, and upgrades that cost an item also
+        // wait until that item has turned up in the garapon.
+        public bool IsRevealed(ProductDef product)
+        {
+            if (string.IsNullOrEmpty(product.UpgradeId))
+            {
+                return product.Price <= StarterPrice || state.TotalEarned * 2 >= product.Price;
+            }
+
+            return IsRevealed(data.FindUpgrade(product.UpgradeId));
+        }
+
+        public bool IsRevealed(UpgradeDef upgrade)
+        {
+            return state.GetUpgradeLevel(upgrade.Id) > 0 ||
+                (state.TotalEarned * 2 >= upgrade.BaseCost && HasSeenItem(upgrade.ItemCostId));
+        }
+
+        // The next upgrade to be stocked and what it is waiting for, as a teaser.
+        public UpgradeDef NextReveal()
+        {
+            UpgradeDef next = null;
+            foreach (var upgrade in data.Upgrades)
+            {
+                if (!IsRevealed(upgrade) && (next == null || upgrade.BaseCost < next.BaseCost))
+                {
+                    next = upgrade;
+                }
+            }
+
+            return next;
+        }
+
+        public string RevealHint(UpgradeDef upgrade)
+        {
+            var hints = new List<string>();
+            if (state.TotalEarned * 2 < upgrade.BaseCost)
+            {
+                hints.Add($"累計{NumberFormat.Yen((upgrade.BaseCost + 1) / 2)}かせぐ");
+            }
+
+            if (!HasSeenItem(upgrade.ItemCostId))
+            {
+                var tier = data.PrizeTiers.Find(candidate => candidate.ItemId == upgrade.ItemCostId);
+                hints.Add(tier != null ? $"{ColorName(tier.Color)}玉をひく" : $"{data.FindItem(upgrade.ItemCostId).DisplayName}を手に入れる");
+            }
+
+            return string.Join("・", hints);
+        }
+
+        // Products that are stocked now but were not in the given set, which is then updated.
+        public List<ProductDef> NewlyRevealed(HashSet<string> known)
+        {
+            var revealed = new List<ProductDef>();
+            foreach (var product in data.Products)
+            {
+                if (!known.Contains(product.Id) && IsRevealed(product))
+                {
+                    known.Add(product.Id);
+                    revealed.Add(product);
+                }
+            }
+
+            return revealed;
+        }
+
+        bool HasSeenItem(string itemId)
+        {
+            if (string.IsNullOrEmpty(itemId) || state.GetItem(itemId) > 0)
+            {
+                return true;
+            }
+
+            foreach (var tier in data.PrizeTiers)
+            {
+                if (tier.ItemId == itemId && state.GetDrawCount(tier.Color) > 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static string ColorName(PrizeColor color)
+        {
+            switch (color)
+            {
+                case PrizeColor.Gold: return "金";
+                case PrizeColor.Silver: return "銀";
+                case PrizeColor.Blue: return "青";
+                case PrizeColor.Green: return "緑";
+                case PrizeColor.Red: return "赤";
+                default: return "白";
+            }
         }
 
         // Draw counts worth celebrating: 10, 100, 1,000 and so on, plus 1/2 and 5 steps past 1,000.

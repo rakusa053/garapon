@@ -69,6 +69,13 @@ namespace Garapon.Tools
             yaml.Append("    GuaranteedGoldDraws: ").Append(Int(data.GuaranteedGoldDraws)).Append('\n');
             yaml.Append("    OfflineHoursCap: ").Append(Number(data.OfflineHoursCap)).Append('\n');
             yaml.Append("    OfflineEfficiency: ").Append(Number(data.OfflineEfficiency)).Append('\n');
+            yaml.Append("    FrenzyMultiplier: ").Append(Number(data.FrenzyMultiplier)).Append('\n');
+            yaml.Append("    FrenzySeconds: ").Append(Number(data.FrenzySeconds)).Append('\n');
+            yaml.Append("    ComboWindowSeconds: ").Append(Number(data.ComboWindowSeconds)).Append('\n');
+            yaml.Append("    ComboStep: ").Append(Number(data.ComboStep)).Append('\n');
+            yaml.Append("    ComboMaxSteps: ").Append(Int(data.ComboMaxSteps)).Append('\n');
+            yaml.Append("    StampBonus: ").Append(Number(data.StampBonus)).Append('\n');
+            yaml.Append("    ClearBonus: ").Append(Number(data.ClearBonus)).Append('\n');
             return yaml.ToString();
         }
 

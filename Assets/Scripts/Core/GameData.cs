@@ -94,6 +94,15 @@ namespace Garapon.Core
         public double OfflineHoursCap = 8;
         public double OfflineEfficiency = 0.5;
 
+        // Fun systems: lucky trash, pickup combos, the stamp card and the bonus for clearing.
+        public double FrenzyMultiplier = 7;
+        public double FrenzySeconds = 30;
+        public double ComboWindowSeconds = 2.5;
+        public double ComboStep = 0.01;
+        public int ComboMaxSteps = 50;
+        public double StampBonus = 0.03;
+        public double ClearBonus = 1;
+
         public long AverageTrashValue()
         {
             if (Trash.Count == 0)
@@ -139,10 +148,10 @@ namespace Garapon.Core
             data.Upgrades.Add(new UpgradeDef { Id = "tongs", DisplayName = "長いトング", Stat = UpgradeStat.PickupRadius, ValuePerLevel = 0.5, MaxLevel = 10, BaseCost = 300, ItemCostId = "tool_parts", ItemCostAmount = 1 });
             data.Upgrades.Add(new UpgradeDef { Id = "bag", DisplayName = "分別袋", Stat = UpgradeStat.TrashValue, ValuePerLevel = 0.5, MaxLevel = 40, BaseCost = 500, CostGrowth = 1.3 });
             data.Upgrades.Add(new UpgradeDef { Id = "robot", DisplayName = "ごみ拾いロボ", Stat = UpgradeStat.AutoCollect, ValuePerLevel = 2, MaxLevel = 60, BaseCost = 2000, CostGrowth = 1.25, ItemCostId = "rare_parts", ItemCostAmount = 1 });
-            data.Upgrades.Add(new UpgradeDef { Id = "card", DisplayName = "ポイントカード", Stat = UpgradeStat.TicketRate, ValuePerLevel = 0.1, MaxLevel = 30, BaseCost = 1000, CostGrowth = 1.3 });
+            data.Upgrades.Add(new UpgradeDef { Id = "card", DisplayName = "ポイントカード", Stat = UpgradeStat.TicketRate, ValuePerLevel = 0.1, MaxLevel = 30, BaseCost = 1000, CostGrowth = 1.4 });
             data.Upgrades.Add(new UpgradeDef { Id = "delivery", DisplayName = "出張買取", Stat = UpgradeStat.Delivery, ValuePerLevel = 1, MaxLevel = 1, BaseCost = 20000, ItemCostId = "rare_parts", ItemCostAmount = 3 });
             data.Upgrades.Add(new UpgradeDef { Id = "grease", DisplayName = "潤滑油", Stat = UpgradeStat.CrankSpeed, ValuePerLevel = 0.25, MaxLevel = 4, BaseCost = 800, CostGrowth = 3 });
-            data.Upgrades.Add(new UpgradeDef { Id = "hopper", DisplayName = "大型ホッパー", Stat = UpgradeStat.DrawBatch, ValuePerLevel = 1, MaxLevel = 10, BaseCost = 3000, CostGrowth = 2.2, ItemCostId = "tool_parts", ItemCostAmount = 3 });
+            data.Upgrades.Add(new UpgradeDef { Id = "hopper", DisplayName = "大型ホッパー", Stat = UpgradeStat.DrawBatch, ValuePerLevel = 1, MaxLevel = 10, BaseCost = 3000, CostGrowth = 2.5, ItemCostId = "tool_parts", ItemCostAmount = 3 });
             data.Upgrades.Add(new UpgradeDef { Id = "motor", DisplayName = "自動モーター", Stat = UpgradeStat.AutoCrank, ValuePerLevel = 1, MaxLevel = 1, BaseCost = 10000, ItemCostId = "tool_parts", ItemCostAmount = 5 });
 
             data.Products.Add(new ProductDef { Id = "bread", DisplayName = "食パン", Price = 150 });
