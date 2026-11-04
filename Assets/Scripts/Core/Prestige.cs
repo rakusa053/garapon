@@ -28,6 +28,21 @@ namespace Garapon.Core
             return (long)Math.Ceiling(next * (double)next * data.SouvenirUnit) - state.LifetimeEarned;
         }
 
+        // The gold ball's trip ticket lets the player leave for the hot spring whenever they like.
+        public static bool CanDepart(GameState state) => state.HasTripTicket && !state.Cleared;
+
+        // Boards the bus to the hot spring, which ends the run. The souvenirs are granted by NextRun.
+        public static bool Depart(GameState state)
+        {
+            if (!CanDepart(state))
+            {
+                return false;
+            }
+
+            state.Cleared = true;
+            return true;
+        }
+
         // Starts another run after clearing: grants the souvenirs and applies the start-of-run perks.
         public static GameState NextRun(GameData data, GameState state)
         {

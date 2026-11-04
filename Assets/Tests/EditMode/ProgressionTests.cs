@@ -82,10 +82,23 @@ namespace Garapon.Tests
 
             var result = lottery.DrawBatch(100);
 
-            Assert.AreEqual(10, result.Draws);
+            Assert.AreEqual(100, result.Draws, "The batch carries on past the gold ball.");
             Assert.AreEqual(PrizeColor.Gold, result.Best.Color);
-            Assert.IsTrue(state.Cleared);
-            Assert.AreEqual(90, state.Tickets);
+            Assert.AreEqual(1, result.Count(PrizeColor.Gold));
+            Assert.IsTrue(state.HasTripTicket);
+            Assert.IsFalse(state.Cleared);
+            Assert.AreEqual(0, state.Tickets);
+        }
+
+        [Test]
+        public void GuaranteeStopsOnceTheTicketIsWon()
+        {
+            data.GuaranteedGoldDraws = 10;
+            state.TotalDraws = 10;
+            state.HasTripTicket = true;
+            var lottery = new Lottery(state, new DrawResolver(data, new FixedRandom(999999)));
+
+            Assert.AreEqual(-1, lottery.DrawsUntilGuarantee);
         }
 
         [Test]

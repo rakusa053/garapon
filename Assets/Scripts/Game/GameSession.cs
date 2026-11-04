@@ -19,7 +19,7 @@ namespace Garapon.Game
     public sealed class GameSession : MonoBehaviour
     {
         const float AutosaveInterval = 30f;
-        const float EndingDelay = 4f;
+        const float EndingDelay = 2f;
         const string EndingScene = "Ending";
         const float DiscoveryCheckInterval = 0.5f;
 
@@ -36,6 +36,7 @@ namespace Garapon.Game
         readonly SystemRandomSource luckyRandom = new SystemRandomSource();
         readonly SystemRandomSource saleRandom = new SystemRandomSource();
         Coroutine endingRoutine;
+        bool tripAnnounced;
 
         public static GameSession Instance { get; private set; }
 
@@ -77,6 +78,7 @@ namespace Garapon.Game
                 return;
             }
 
+            tripAnnounced = State.HasTripTicket;
             ApplyOfflineProgress();
         }
 
@@ -184,19 +186,27 @@ namespace Garapon.Game
 
         public void HandlePrize(DrawBatchResult result, long drawsBefore)
         {
-            if (result.Best.Color == PrizeColor.Gold)
+            if (State.HasTripTicket && !tripAnnounced)
             {
-                Post("金玉!! 温泉旅行が当たりました!");
+                // The trip does not start by itself: earning more first brings home more souvenirs.
+                tripAnnounced = true;
+                Post("金玉!! 温泉旅行券が当たりました!\nバス停からいつでも出発できます。稼ぐほどおみやげが増えます");
                 SaveFile.Save(State);
-                endingRoutine ??= StartCoroutine(GoToEnding());
-                return;
+                if (result.Draws == 1)
+                {
+                    return;
+                }
             }
 
             var message = new StringBuilder();
             if (result.Draws == 1)
             {
                 var item = Data.FindItem(result.Best.ItemId);
-                message.Append(PrizeColors.DisplayName(result.Best.Color)).Append(": ").Append(item.DisplayName);
+                message.Append(PrizeColors.DisplayName(result.Best.Color));
+                if (item != null)
+                {
+                    message.Append(": ").Append(item.DisplayName);
+                }
             }
             else
             {
@@ -217,6 +227,20 @@ namespace Garapon.Game
             }
 
             Post(message.ToString());
+        }
+
+        // Boards the bus to the hot spring with the gold ball's trip ticket, ending this run.
+        public bool DepartForHotSpring()
+        {
+            if (!Prestige.Depart(State))
+            {
+                return false;
+            }
+
+            Post($"温泉へ出発! おみやげ {NumberFormat.Japanese(Prestige.Pending(Data, State))}個を持って帰ります");
+            SaveFile.Save(State);
+            endingRoutine ??= StartCoroutine(GoToEnding());
+            return true;
         }
 
         public void CollectLucky()

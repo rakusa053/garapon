@@ -24,6 +24,7 @@ namespace Garapon.Game
             var bonus = 1 + next.Clears * data.ClearBonus;
             resultText.text =
                 "温泉旅行に出発!\n\n" +
+                (state.TripWonSeconds > 0 ? $"金玉までの時間 {Clock(state.TripWonSeconds)}\n" : string.Empty) +
                 $"プレイ時間 {Clock(state.PlaySeconds)}\n" +
                 (next.BestClearSeconds > 0 ? $"最速記録 {Clock(next.BestClearSeconds)}\n" : string.Empty) +
                 $"抽選回数 {NumberFormat.Japanese(state.TotalDraws)}回\n" +

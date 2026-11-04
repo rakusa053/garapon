@@ -197,6 +197,29 @@ namespace Garapon.Tests
         }
 
         [Test]
+        public void StayingAfterTheTicketBringsHomeMoreSouvenirs()
+        {
+            state.AddEarnings((long)(16 * data.SouvenirUnit));
+            state.HasTripTicket = true;
+            var now = Prestige.Pending(data, state);
+
+            state.AddEarnings((long)(20 * data.SouvenirUnit));
+            Prestige.Depart(state);
+
+            Assert.AreEqual(4, now);
+            Assert.AreEqual(6, Prestige.NextRun(data, state).SouvenirsEarned);
+        }
+
+        [Test]
+        public void NoSouvenirsWithoutLeaving()
+        {
+            state.AddEarnings((long)(100 * data.SouvenirUnit));
+            state.HasTripTicket = true;
+
+            Assert.AreEqual(0, Prestige.NextRun(data, state).SouvenirsEarned, "Only the trip itself brings souvenirs home.");
+        }
+
+        [Test]
         public void PerksCostSouvenirsAndStopAtMax()
         {
             var perk = data.FindPerk("net_super");

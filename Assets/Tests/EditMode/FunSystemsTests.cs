@@ -226,6 +226,21 @@ namespace Garapon.Tests
         }
 
         [Test]
+        public void BestTimeIsTheTimeToTheGoldBall()
+        {
+            state.HasTripTicket = true;
+            state.TripWonSeconds = 3000;
+            state.PlaySeconds = 5000;
+            state.Cleared = true;
+
+            var next = state.NextRun();
+
+            Assert.AreEqual(3000, next.BestClearSeconds, "Staying on after the ticket does not spoil the record.");
+            Assert.IsFalse(next.HasTripTicket, "The ticket is used up by the trip.");
+            Assert.AreEqual(0, next.TripWonSeconds);
+        }
+
+        [Test]
         public void EarlierClearsMultiplySales()
         {
             state.Clears = 1;

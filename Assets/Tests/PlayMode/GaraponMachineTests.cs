@@ -73,16 +73,32 @@ namespace Garapon.Tests
         }
 
         [UnityTest]
-        public IEnumerator GoldDrawLoadsEnding()
+        public IEnumerator GoldDrawWinsTicketAndBusStopLoadsEnding()
         {
             var session = GameSession.Instance;
             var machine = Object.FindAnyObjectByType<GaraponMachine>();
+            var busStop = Object.FindAnyObjectByType<HotSpringBusStop>();
+            Assert.IsNotNull(busStop, "Run Garapon/Build World to add the bus stop to the Town scene.");
             session.SetRandomSource(new FixedRandom { Value = 0 });
             session.State.Tickets = 1;
             Time.timeScale = 4f;
 
             machine.Interact();
             var limit = Time.realtimeSinceStartup + 30f;
+            while (machine.IsBusy && Time.realtimeSinceStartup < limit)
+            {
+                yield return null;
+            }
+
+            yield return new WaitForSecondsRealtime(1f);
+            Assert.IsTrue(session.State.HasTripTicket);
+            Assert.AreEqual("Town", SceneManager.GetActiveScene().name, "The gold ball no longer ends the run by itself.");
+
+            busStop.Interact();
+            Assert.IsFalse(session.State.Cleared, "The first press only asks for confirmation.");
+            busStop.Interact();
+
+            limit = Time.realtimeSinceStartup + 30f;
             while (SceneManager.GetActiveScene().name != "Ending" && Time.realtimeSinceStartup < limit)
             {
                 yield return null;

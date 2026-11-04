@@ -44,7 +44,7 @@ namespace Garapon.Core
             get
             {
                 var guarantee = Prestige.GuaranteedGoldDraws(resolver.Data, state);
-                return guarantee > 0 ? System.Math.Max(0, guarantee - state.TotalDraws) : -1;
+                return guarantee > 0 && !state.HasTripTicket ? System.Math.Max(0, guarantee - state.TotalDraws) : -1;
             }
         }
 
@@ -63,7 +63,11 @@ namespace Garapon.Core
             state.AddDrawCount(tier.Color);
             if (tier.Color == PrizeColor.Gold)
             {
-                state.Cleared = true;
+                if (!state.HasTripTicket)
+                {
+                    state.HasTripTicket = true;
+                    state.TripWonSeconds = state.PlaySeconds;
+                }
             }
             else if (!string.IsNullOrEmpty(tier.ItemId))
             {
@@ -73,7 +77,7 @@ namespace Garapon.Core
             return tier;
         }
 
-        // Draws up to maxDraws balls, stopping early when tickets run out or gold comes up.
+        // Draws up to maxDraws balls, stopping early when tickets run out.
         // Returns null when no draw can be made.
         public DrawBatchResult DrawBatch(long maxDraws)
         {

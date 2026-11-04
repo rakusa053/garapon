@@ -45,6 +45,17 @@ namespace Garapon.Simulation
         // Switches for measuring each system on its own.
         public static bool NoCombo, NoLucky, NoStamps, NoStocking, NoSale, NoBulk;
 
+        // When to leave for the hot spring after the gold ball. With DepartNow the player leaves at once,
+        // as the game used to do. Otherwise they stay while the souvenirs still come in faster than the
+        // run's average so far (the marginal value theorem), for at most MaxStaySeconds.
+        public static bool DepartNow;
+        public static double MaxStaySeconds = 3600;
+        const double StayWindowSeconds = 600;
+
+        public double TicketTime = double.NaN;
+        public long SouvenirsAtTicket;
+        readonly Queue<(double Time, long Pending)> stayHistory = new Queue<(double, long)>();
+
         public double Time;
         public readonly Dictionary<string, double> FirstPurchase = new Dictionary<string, double>();
         public readonly SortedDictionary<long, double> DrawMilestones = new SortedDictionary<long, double>();
@@ -83,6 +94,35 @@ namespace Garapon.Simulation
             while (!State.Cleared && Time < maxSeconds)
             {
                 Loop();
+                if (State.HasTripTicket)
+                {
+                    DecideDeparture();
+                }
+            }
+        }
+
+        void DecideDeparture()
+        {
+            var pending = Prestige.Pending(Data, State);
+            if (double.IsNaN(TicketTime))
+            {
+                TicketTime = Time;
+                SouvenirsAtTicket = pending;
+            }
+
+            stayHistory.Enqueue((Time, pending));
+            while (stayHistory.Count > 1 && stayHistory.Peek().Time < Time - StayWindowSeconds)
+            {
+                stayHistory.Dequeue();
+            }
+
+            var stayed = Time - TicketTime;
+            var oldest = stayHistory.Peek();
+            var marginal = Time > oldest.Time ? (pending - oldest.Pending) / (Time - oldest.Time) : double.PositiveInfinity;
+            var average = pending / Time;
+            if (DepartNow || stayed >= MaxStaySeconds || (stayed >= StayWindowSeconds && marginal < average))
+            {
+                Prestige.Depart(State);
             }
         }
 
@@ -159,6 +199,7 @@ namespace Garapon.Simulation
         void Advance(double seconds)
         {
             Time += seconds;
+            State.PlaySeconds = Time;
         }
 
         // Cranks for at most the given time and returns how long the cranking took.
@@ -285,6 +326,16 @@ namespace Garapon.Simulation
             }
         }
 
+        // How long players stayed after the gold ball and how many more souvenirs that brought home.
+        static void PrintStay(List<PlayerModel> models)
+        {
+            var departed = models.Where(m => m.State.Cleared).ToList();
+            var stay = departed.Select(m => m.Time - m.TicketTime).ToList();
+            var atTicket = departed.Select(m => (double)m.SouvenirsAtTicket).ToList();
+            var atDeparture = departed.Select(m => (double)Prestige.Pending(m.Data, m.State)).ToList();
+            Console.WriteLine($"  stayed after gold (median) {Clock(Median(stay))}, souvenirs {Median(atTicket)} at gold -> {Median(atDeparture)} at departure");
+        }
+
         static void Main(string[] args)
         {
             if (args.Contains("--write-asset"))
@@ -325,6 +376,12 @@ namespace Garapon.Simulation
             PlayerModel.NoStocking = args.Contains("--no-stocking");
             PlayerModel.NoSale = args.Contains("--no-sale");
             PlayerModel.NoBulk = args.Contains("--no-bulk");
+            PlayerModel.DepartNow = args.Contains("--depart-now");
+            var stayIndex = Array.IndexOf(args, "--max-stay");
+            if (stayIndex >= 0 && stayIndex + 1 < args.Length)
+            {
+                PlayerModel.MaxStaySeconds = double.Parse(args[stayIndex + 1]) * 60;
+            }
             const int laterRuns = 3;
             var models = new List<PlayerModel>();
             var laterModels = Enumerable.Range(0, laterRuns).Select(_ => new List<PlayerModel>()).ToList();
@@ -381,7 +438,11 @@ namespace Garapon.Simulation
             if (cleared.Count > 0)
             {
                 cleared.Sort();
-                Console.WriteLine($"  fastest {Clock(cleared.First())}, median {Clock(Median(cleared))}, slowest {Clock(cleared.Last())}");
+                var gold = models.Where(m => m.State.Cleared).Select(m => m.TicketTime).ToList();
+                gold.Sort();
+                Console.WriteLine($"  gold ball: fastest {Clock(gold.First())}, median {Clock(Median(gold))}, slowest {Clock(gold.Last())}");
+                Console.WriteLine($"  departure: fastest {Clock(cleared.First())}, median {Clock(Median(cleared))}, slowest {Clock(cleared.Last())}");
+                PrintStay(models);
             }
 
             if (!noFun)
@@ -396,8 +457,10 @@ namespace Garapon.Simulation
                     if (times.Count > 0)
                     {
                         times.Sort();
-                        Console.WriteLine($"Run {run + 2} clear: fastest {Clock(times.First())}, median {Clock(Median(times))}, slowest {Clock(times.Last())}" +
-                            $"  (souvenirs earned so far, median {Median(souvenirs[run])})");
+                        var gold = laterModels[run].Where(m => m.State.Cleared).Select(m => m.TicketTime).ToList();
+                        Console.WriteLine($"Run {run + 2} departure: fastest {Clock(times.First())}, median {Clock(Median(times))}, slowest {Clock(times.Last())}" +
+                            $"  gold ball median {Clock(Median(gold))}  (souvenirs earned so far, median {Median(souvenirs[run])})");
+                        PrintStay(laterModels[run]);
                     }
                 }
             }

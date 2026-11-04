@@ -78,15 +78,38 @@ namespace Garapon.Tests
         }
 
         [Test]
-        public void GoldDrawClearsGameAndStopsFurtherDraws()
+        public void GoldDrawWinsTripTicketWithoutEndingTheRun()
         {
-            state.Tickets = 2;
+            state.Tickets = 3;
+            state.PlaySeconds = 1234;
             var lottery = new Lottery(state, new DrawResolver(data, new FixedRandom(0)));
 
             Assert.AreEqual(PrizeColor.Gold, lottery.Draw().Color);
-            Assert.IsTrue(state.Cleared);
-            Assert.IsNull(lottery.Draw());
+            Assert.IsTrue(state.HasTripTicket);
+            Assert.AreEqual(1234, state.TripWonSeconds);
+            Assert.IsFalse(state.Cleared, "The run goes on until the player leaves for the hot spring.");
+
+            state.PlaySeconds = 2000;
+            Assert.AreEqual(PrizeColor.Gold, lottery.Draw().Color, "Drawing carries on after the ticket.");
+            Assert.AreEqual(1234, state.TripWonSeconds, "A second gold ball does not move the record.");
             Assert.AreEqual(1, state.Tickets);
+        }
+
+        [Test]
+        public void DepartingEndsTheRunAndStopsDraws()
+        {
+            state.Tickets = 1;
+            var lottery = new Lottery(state, new DrawResolver(data, new FixedRandom(999999)));
+
+            Assert.IsFalse(Prestige.CanDepart(state));
+            Assert.IsFalse(Prestige.Depart(state), "Leaving needs the trip ticket.");
+            Assert.IsFalse(state.Cleared);
+
+            state.HasTripTicket = true;
+            Assert.IsTrue(Prestige.Depart(state));
+            Assert.IsTrue(state.Cleared);
+            Assert.IsFalse(Prestige.CanDepart(state));
+            Assert.IsNull(lottery.Draw());
         }
 
         [Test]
@@ -245,6 +268,8 @@ namespace Garapon.Tests
             state.Money = 1234567890123L;
             state.Tickets = 42;
             state.Cleared = true;
+            state.HasTripTicket = true;
+            state.TripWonSeconds = 3600.5;
             state.AddItem("tissue", 7);
             state.AddUpgradeLevel("shoes");
             state.AddDrawCount(PrizeColor.Red);
@@ -254,6 +279,8 @@ namespace Garapon.Tests
             Assert.AreEqual(state.Money, restored.Money);
             Assert.AreEqual(42, restored.Tickets);
             Assert.IsTrue(restored.Cleared);
+            Assert.IsTrue(restored.HasTripTicket);
+            Assert.AreEqual(3600.5, restored.TripWonSeconds);
             Assert.AreEqual(7, restored.GetItem("tissue"));
             Assert.AreEqual(1, restored.GetUpgradeLevel("shoes"));
             Assert.AreEqual(1, restored.GetDrawCount(PrizeColor.Red));

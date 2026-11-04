@@ -22,7 +22,12 @@ namespace Garapon.Core
         public long SpendRemainder;
         public long TotalDraws;
         public double PlaySeconds;
+        // Set when the player boards the bus to the hot spring, which ends the run.
         public bool Cleared;
+        // The gold ball wins a trip ticket. The run goes on until the player chooses to leave,
+        // so staying longer to earn more souvenirs is the player's call.
+        public bool HasTripTicket;
+        public double TripWonSeconds;
         public long LastSavedUnixSeconds;
 
         // Lifetime money from selling, which drives which shelves have been stocked.
@@ -52,7 +57,9 @@ namespace Garapon.Core
         // the stamp card, souvenirs and perks carry over. Prestige.NextRun also grants new souvenirs.
         public GameState NextRun()
         {
-            var best = Cleared && (BestClearSeconds <= 0 || PlaySeconds < BestClearSeconds) ? PlaySeconds : BestClearSeconds;
+            // The record is the time to the gold ball, so staying on afterwards does not spoil it.
+            var clearSeconds = TripWonSeconds > 0 ? TripWonSeconds : PlaySeconds;
+            var best = Cleared && (BestClearSeconds <= 0 || clearSeconds < BestClearSeconds) ? clearSeconds : BestClearSeconds;
             return new GameState
             {
                 Clears = Clears + (Cleared ? 1 : 0),

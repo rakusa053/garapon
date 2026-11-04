@@ -178,6 +178,7 @@ namespace Garapon.Editor
             BuildSupermarket(data.Data, font, palette);
             BuildSouvenirExchange(data.Data, font, palette);
             BuildGaraponBooth(font, palette);
+            BuildBusStop(font, palette);
             BuildHud(player, font);
 
             EditorSceneManager.SaveScene(scene, TownPath);
@@ -229,6 +230,21 @@ namespace Garapon.Editor
             }
 
             WorldLabel("おみやげ交換所", root.transform.position + new Vector3(0f, 3f, 2f), font);
+        }
+
+        // The stop for the hot-spring bus, a short walk south of the garapon booth.
+        // The player leaves from here with the gold ball's trip ticket whenever they choose.
+        static void BuildBusStop(TMP_FontAsset font, Palette palette)
+        {
+            var root = new GameObject("HotSpringBusStop");
+            root.transform.position = new Vector3(-28f, 0f, -10f);
+
+            Box("Pole", root.transform, new Vector3(-1.4f, 1.25f, 0f), new Vector3(0.15f, 2.5f, 0.15f), palette.Wall);
+            Box("Sign", root.transform, new Vector3(-1.4f, 2.6f, 0f), new Vector3(0.9f, 0.9f, 0.1f), palette.Water);
+            var bench = Box("Bench", root.transform, new Vector3(0.4f, 0.45f, 0f), new Vector3(2.6f, 0.9f, 1f), palette.Water);
+            var label = WorldLabel("温泉行きバス停", bench.transform.position + Vector3.up * 1.4f, font);
+            var stop = bench.AddComponent<HotSpringBusStop>();
+            Wire(stop, ("label", label));
         }
 
         static void BuildGaraponBooth(TMP_FontAsset font, Palette palette)

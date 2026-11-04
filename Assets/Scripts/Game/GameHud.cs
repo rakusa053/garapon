@@ -87,6 +87,11 @@ namespace Garapon.Game
                     .Append(" 残り").Append(Mathf.CeilToInt((float)session.Sale.SecondsLeft)).Append("秒</color>\n");
             }
 
+            if (state.HasTripTicket)
+            {
+                builder.Append("<color=#FFD040>温泉旅行券あり! バス停からいつでも出発できます</color>\n");
+            }
+
             builder.Append("抽選券 ").Append(NumberFormat.Japanese(state.Tickets)).Append("枚\n");
             builder.Append("カゴ ").Append(NumberFormat.Japanese(session.Cart.Count)).Append("点 ").Append(NumberFormat.Yen(session.CartTotal()))
                 .Append("  [Q] ").Append(session.BuyModeName).Append('\n');
@@ -113,6 +118,12 @@ namespace Garapon.Game
             else
             {
                 builder.Append("温泉のおみやげ 見込み ").Append(NumberFormat.Japanese(Prestige.Pending(session.Data, state))).Append("個\n");
+            }
+
+            if (state.HasTripTicket)
+            {
+                // While holding the ticket, the question is whether one more souvenir is worth waiting for.
+                builder.Append("あと").Append(NumberFormat.Yen(Prestige.EarningsForNext(session.Data, state))).Append("稼ぐと おみやげ+1\n");
             }
 
             builder.Append("スタンプ ").Append(state.Stamps.Count).Append('/').Append(StampCard.All.Count)
